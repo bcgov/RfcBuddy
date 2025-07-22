@@ -1,7 +1,7 @@
 ﻿using RfcBuddy.App.Core;
 using RfcBuddy.App.Objects;
-using System.Drawing;
 using System.Text.RegularExpressions;
+using Xceed.Drawing;
 using Xceed.Document.NET;
 using Xceed.Words.NET;
 
