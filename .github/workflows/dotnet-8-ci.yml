@@ -3,6 +3,8 @@ name: .NET 8 CI
 on:
   push:
   pull_request:
+  release:
+    types: [created]
 
 jobs:
   lint:
@@ -40,7 +42,7 @@ jobs:
           coverage_threshold: "25"
           coverage_threshold_type: "line,branch"
 
-  sast:
+  Sast:
     runs-on: ubuntu-latest
     needs: [build, test]
     steps:
@@ -55,19 +57,19 @@ jobs:
           gitleaks_license: ${{ secrets.GITLEAKS_LICENSE }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-  package:
+  Package:
     name: Package
     runs-on: ubuntu-latest
-    needs: sast
+    needs: Sast
     steps:
       - uses: actions/checkout@v4
       - uses: bcgov/ag-devops/ci/.shared/docker-dind@v1.0.0
   
 
 
-  semantic_release:
+  Release:
     runs-on: ubuntu-latest
-    needs: [package]
+    needs: [Package]
     steps:
     - uses: bcgov/ag-devops/ci/release/semantic-release@v1.0.0
       with:
