@@ -74,9 +74,6 @@ jobs:
 
   Release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     needs: [Package]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/') || github.event_name == 'pull_request'
     steps:
