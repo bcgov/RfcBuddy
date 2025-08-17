@@ -2,13 +2,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34309.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RfcBuddy.Web", "RfcBuddy.Web\RfcBuddy.Web.csproj", "{9EBED5DE-596F-4A33-B5E8-AB64201CF1D0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RfcBuddy.Web", "src\RfcBuddy.Web\RfcBuddy.Web.csproj", "{9EBED5DE-596F-4A33-B5E8-AB64201CF1D0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RfcBuddy.Web.Tests", "RfcBuddy.Web.Tests\RfcBuddy.Web.Tests.csproj", "{5207412E-86F8-40E9-82AC-55E70C8ED561}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RfcBuddy.Web.Tests", "src\RfcBuddy.Web.Tests\RfcBuddy.Web.Tests.csproj", "{5207412E-86F8-40E9-82AC-55E70C8ED561}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RfcBuddy.App", "RfcBuddy.App\RfcBuddy.App.csproj", "{A04D44CF-571E-426F-8D77-6D1793464D11}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RfcBuddy.App", "src\RfcBuddy.App\RfcBuddy.App.csproj", "{A04D44CF-571E-426F-8D77-6D1793464D11}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RfcBuddy.App.Tests", "RfcBuddy.App.Tests\RfcBuddy.App.Tests.csproj", "{202B571C-B240-44F6-B85A-204FB18A909C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RfcBuddy.App.Tests", "src\RfcBuddy.App.Tests\RfcBuddy.App.Tests.csproj", "{202B571C-B240-44F6-B85A-204FB18A909C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

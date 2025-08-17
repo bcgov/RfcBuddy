@@ -10,7 +10,7 @@ public class HomeViewModel
     /// <summary>
     /// Ministry-specific keywords, e.g. server names or file shares
     /// </summary>
-    [Required(ErrorMessage =@"Please enter the ministry-specific keywords, or ""N/A"" to confirm that this field should be ignored.")]
+    [Required(ErrorMessage = @"Please enter the ministry-specific keywords, or ""N/A"" to confirm that this field should be ignored.")]
     [Display(Name = "Ministry-specific keywords, e.g. server names or file shares")]
     public string MinistryKeywords { get; set; } = string.Empty;
 

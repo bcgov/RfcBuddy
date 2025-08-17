@@ -24,7 +24,7 @@ public class TestBase
 
     protected static IUserService MockUserService()
     {
-        var mockService= new Mock<IUserService>();
+        var mockService = new Mock<IUserService>();
         List<string> list1 = [];
         List<string> list2 = [];
         List<string> list3 = [];
