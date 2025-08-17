@@ -13,7 +13,7 @@
         [TestMethod()]
         public void VerifySha256HashTest()
         {
-            bool value = Cryptography.VerifySha256Hash("Unit Test","4d7eefdafd575f112899dd31e5c9e50203e8d32dcbe7d78967bf8cbddbb0f938");
+            bool value = Cryptography.VerifySha256Hash("Unit Test", "4d7eefdafd575f112899dd31e5c9e50203e8d32dcbe7d78967bf8cbddbb0f938");
             Assert.IsTrue(value);
         }
     }

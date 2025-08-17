@@ -28,5 +28,5 @@ public class AppSettings
     /// <summary>
     /// The source URL refresh interval in minutes. Defaults to 60.
     /// </summary>
-    public int SourceRefreshInterval {  get; set; } = 60;
+    public int SourceRefreshInterval { get; set; } = 60;
 }
