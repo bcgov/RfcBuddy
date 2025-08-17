@@ -60,7 +60,7 @@ jobs:
           sonar-host-url: ${{ vars.SONAR_HOST_URL }}
           coverage-report: TestResults/coverage/coverage.cobertura.xml
           gitleaks_license: ${{ secrets.GITLEAKS_LICENSE }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.PAT }}
 
   Package:
     name: Package
@@ -79,4 +79,4 @@ jobs:
     steps:
     - uses: bcgov/ag-devops/ci/release/semantic-release@v1.0.0
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.PAT }}
