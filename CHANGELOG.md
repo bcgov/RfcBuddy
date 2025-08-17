@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.5](https://github.com/bcgov/RfcBuddy/compare/v1.0.4...v1.0.5) (2025-08-17)
+
+
+### Bug Fixes
+
+* trigger ci on release tag ([aae2e2b](https://github.com/bcgov/RfcBuddy/commit/aae2e2b8ba12053b7dad66bbccf999fb0671617e))
+* trigger ci on release tag ([8b9ffd1](https://github.com/bcgov/RfcBuddy/commit/8b9ffd19443a159b21543cde8b2d4ac824873a04))
+
 ## [1.0.4](https://github.com/bcgov/RfcBuddy/compare/v1.0.3...v1.0.4) (2025-08-17)
 
 
