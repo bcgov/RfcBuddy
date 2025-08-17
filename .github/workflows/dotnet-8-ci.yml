@@ -3,7 +3,7 @@ name: .NET 8 CI
 on:
   push:
     branches:
-      - '**'    
+      - '**'      # all branches
     tags:
       - 'v*' 
   pull_request:
