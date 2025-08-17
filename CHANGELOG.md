@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.0 (2025-08-17)
+
+
+### Features
+
+* added ci github action ([6220522](https://github.com/bcgov/RfcBuddy/commit/622052200418dbda6a0aae7e066d1278bc3c28c3))
+* added ci workflow ([757c539](https://github.com/bcgov/RfcBuddy/commit/757c539784cf706857d9f957cd05dd5618fa1151))
+* added ci workflow ([5cd2d96](https://github.com/bcgov/RfcBuddy/commit/5cd2d9656d5623f9c5c11fc00093456756349e76))
+* ci pipeline ([f7d2197](https://github.com/bcgov/RfcBuddy/commit/f7d2197a4e762aa37c1f06b1e4460ff9014eb941))
+
+
+### Bug Fixes
+
+* trigger ci on release tag ([77b3cf5](https://github.com/bcgov/RfcBuddy/commit/77b3cf54e92863ea7c1f810e0921f7ab669d4524))
+* trigger ci on release tag ([f12d954](https://github.com/bcgov/RfcBuddy/commit/f12d954aacf7265f062550bd2dcbd17130ae88f1))
+* update sonar project key ([133ecd2](https://github.com/bcgov/RfcBuddy/commit/133ecd27450eab1f65b90847672eac2243e83673))
+
 ## 1.0.0 (2025-08-16)
 
 
