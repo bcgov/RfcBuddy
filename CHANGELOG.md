@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.0](https://github.com/bcgov/RfcBuddy/compare/v1.1.0...v1.2.0) (2025-08-19)
+
+
+### Features
+
+* added ci workflow ([39238fe](https://github.com/bcgov/RfcBuddy/commit/39238fee0497d9acbdf295f2350f7931ca12052a))
+* added ci workflow ([da88eef](https://github.com/bcgov/RfcBuddy/commit/da88eef570c132120b8f887efebce6a553edbcfc))
+* Merge pull request [#20](https://github.com/bcgov/RfcBuddy/issues/20) from bcgov/feat/ci ([39238fe](https://github.com/bcgov/RfcBuddy/commit/39238fee0497d9acbdf295f2350f7931ca12052a))
+
 ## [1.1.0](https://github.com/bcgov/RfcBuddy/compare/v1.0.5...v1.1.0) (2025-08-17)
 
 
