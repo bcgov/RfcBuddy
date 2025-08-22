@@ -117,21 +117,20 @@ public class ExcelService(IAppSettingsService appSettingsService) : IRfcService
                     if (!string.IsNullOrEmpty(currentRfc.RfcNumber))
                     {
                         totalRfcs++;
-                        //Ignore RFCs that contain keywords that should be filtered out.
-                        if (!RfcKeywordMatches(ref currentRfc, ignoreKeywords))
+                        //Add ministry-specific RFCs
+                        if (RfcKeywordMatches(ref currentRfc, ministryKeywords))
                         {
-                            if (RfcKeywordMatches(ref currentRfc, ministryKeywords))
-                            {
-                                ministryRfcs.Add(currentRfc);
-                            }
-                            else if (RfcKeywordMatches(ref currentRfc, generalKeywords))
-                            {
-                                generalRfcs.Add(currentRfc);
-                            }
-                            else
-                            {
-                                otherRfcs.Add(currentRfc);
-                            }
+                            ministryRfcs.Add(currentRfc);
+                        }
+                        //Add general RFCs
+                        else if (RfcKeywordMatches(ref currentRfc, generalKeywords))
+                        {
+                            generalRfcs.Add(currentRfc);
+                        }
+                        //Ignore RFCs that contain keywords that should be filtered out.
+                        else if (!RfcKeywordMatches(ref currentRfc, ignoreKeywords))
+                        {
+                            otherRfcs.Add(currentRfc);
                         }
                     }
                     currentRow++;
