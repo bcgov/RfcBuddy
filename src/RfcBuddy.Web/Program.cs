@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.HttpOverrides;
 using RfcBuddy.App.Services;
 using System.Security.Claims;
 using System.Security.Principal;
@@ -17,6 +18,14 @@ builder.Services.AddScoped<IWordService, WordService>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Trust proxy headers (for OpenShift HTTPS)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 //Authentication
 const string keycloakSection = "Keycloak";
@@ -73,6 +82,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseForwardedHeaders();
 
 app.UseAuthentication();
 app.UseAuthorization();
