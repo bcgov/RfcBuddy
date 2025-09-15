@@ -31,7 +31,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
-ENV ASPNETCORE_ENVIRONMENT="Development"
 ENV \
     DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 \
     LC_ALL=en_US.UTF-8 \
