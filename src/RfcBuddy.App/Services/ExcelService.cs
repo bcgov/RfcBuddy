@@ -159,11 +159,11 @@ public class ExcelService(IAppSettingsService appSettingsService) : IRfcService
                 Description = changes.Rows[currentRow].ItemArray[colDescription]?.ToString() ?? string.Empty,
                 RiskAssessment = changes.Rows[currentRow].ItemArray[colRisk]?.ToString() ?? string.Empty
             };
-            if (DateTime.TryParse(changes.Rows[currentRow].ItemArray[colStartDate]?.ToString(), new CultureInfo("en-US"), out DateTime startDate))
+            if (DateTime.TryParse(changes.Rows[currentRow].ItemArray[colStartDate]?.ToString(), CultureInfo.InvariantCulture, out DateTime startDate))
             {
                 result.StartDate = startDate;
             }
-            if (DateTime.TryParse(changes.Rows[currentRow].ItemArray[colEndDate]?.ToString(), new CultureInfo("en-US"), out DateTime endDate))
+            if (DateTime.TryParse(changes.Rows[currentRow].ItemArray[colEndDate]?.ToString(), CultureInfo.InvariantCulture, out DateTime endDate))
             {
                 result.EndDate = endDate;
             }
