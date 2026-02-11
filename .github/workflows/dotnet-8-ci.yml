@@ -49,7 +49,7 @@ jobs:
   Package:
     name: Package
     runs-on: ubuntu-latest
-    needs: Sast
+    needs: test
     steps:
       - uses: actions/checkout@v4
       - uses: bcgov/ag-devops/ci/.shared/docker-dind@v1.0.0
