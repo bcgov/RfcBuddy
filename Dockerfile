@@ -29,6 +29,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+VOLUME /app/data
+
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 ENV \
