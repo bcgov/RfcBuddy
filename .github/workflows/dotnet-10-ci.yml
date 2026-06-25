@@ -37,7 +37,7 @@ jobs:
 
       - name: Run Tests & Code Coverage
         run: |
-          dotnet test RfcBuddy.sln --configuration Release --no-build --logger "junit;LogFileName=test-results.xml" --collect:"XPlat Code Coverage"
+          dotnet test RfcBuddy.sln --configuration Release --no-build --logger "junit;LogFileName=test-results.xml" --collect:"XPlat Code Coverage" /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura
           
       - name: Verify Code Coverage Threshold
         shell: pwsh
