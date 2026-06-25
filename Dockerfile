@@ -13,8 +13,9 @@ COPY src/RfcBuddy.App/*.csproj ./src/RfcBuddy.App/
 COPY src/RfcBuddy.App.Tests/*.csproj ./src/RfcBuddy.App.Tests/
 RUN dotnet restore ./src/RfcBuddy.Web/RfcBuddy.Web.csproj
 
-# Copy the rest of the source code
-COPY . .
+# Copy individual folders specifically rather than recursively copying everything
+COPY src/ ./src/
+COPY CHANGELOG.md LICENSE README.md RfcBuddy.sln ./
 
 # Build and publish, no need for test
 WORKDIR /app/src/RfcBuddy.Web
@@ -28,6 +29,9 @@ COPY --from=build /out ./
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Run as a non-privileged system user for security best practices
+USER 1001
 
 VOLUME /app/data
 
