@@ -8,13 +8,13 @@ Supplements project constitution at `.github/memory/constitution.md`. Constituti
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Language | C# | 12 |
-| Runtime | .NET | 8 |
-| Frontend | ASP.NET Core MVC (Razor Views) | 8.0.x |
+| Language | C# | 14 |
+| Runtime | .NET | 10 |
+| Frontend | ASP.NET Core MVC (Razor Views) | 10.0.x |
 | Auth | OIDC / Keycloak (cookie-based) | BC Gov Keycloak |
 | Excel Processing | ExcelDataReader | 3.8.0 |
 | Word Generation | DocX | 5.0.0 |
-| Logging | Microsoft.Extensions.Logging | 8.0.x |
+| Logging | Microsoft.Extensions.Logging | 10.0.x |
 | Testing | MSTest, Moq, coverlet | latest |
 | CI/CD | OpenShift / Docker | — |
 
@@ -36,7 +36,7 @@ src/
 └── RfcBuddy.Web.Tests/  # MSTest unit tests for RfcBuddy.Web
 
 RfcBuddy.sln             # Solution file
-Dockerfile               # Multi-stage Docker build (sdk:8.0 → aspnet:8.0)
+Dockerfile               # Multi-stage Docker build (sdk:10.0 → aspnet:10.0)
 ```
 
 ---
