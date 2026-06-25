@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0] (2026-06-25)
+
+### Features
+* **Framework**: Upgraded application infrastructure to target **.NET 10.0** spanning all library, test, and web runnable layers.
+* **Dependencies**: Bulk upgraded NuGet development and system packages to their latest versions matching .NET 10.0 specifications (including test SDKs, coverlet, Moq, and OpenIdConnect libraries).
+* **Security & Docker Compliance**: 
+  - Restructured `Dockerfile` copying pipeline to copy specific source structures and added a non-privileged `USER 1001` runner layer.
+  - Mitigated MIME Confusion vulnerabilities by adding local-hardening headers (`X-Content-Type-Options: nosniff`) and enforcing session protection with `httpOnlyCookies=true` inside `Web.config`.
+  - Achieved a completely clean SonarQube quality gate scan layout (0 security hotspots remaining).
+* **CI/CD Pipeline**: 
+  - Designed and built a new automated GitHub Actions pipeline (`dotnet-10-ci.yml`) leveraging vanilla steps (`actions/setup-dotnet`, `docker/build-push-action`) without relying on the external `bcgov/ag-devops` composite dependencies.
+  - Added native code linting (`dotnet format`), unit testing run checks, and container building with direct pushes to GitHub Container Registry (GHCR).
+
 ## [1.2.0](https://github.com/bcgov/RfcBuddy/compare/v1.1.0...v1.2.0) (2025-08-19)
 
 
