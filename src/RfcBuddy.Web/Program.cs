@@ -89,7 +89,7 @@ builder.Services.AddAuthentication(options =>
             OnRedirectToIdentityProvider = context =>
             {
                 // Force HTTPS redirect URI when running behind a TLS-terminating reverse proxy (like OpenShift route)
-                if (context.Request.Headers.ContainsKey("X-Forwarded-Proto") && 
+                if (context.Request.Headers.ContainsKey("X-Forwarded-Proto") &&
                     context.Request.Headers["X-Forwarded-Proto"].ToString().Equals("https", StringComparison.OrdinalIgnoreCase))
                 {
                     context.ProtocolMessage.RedirectUri = context.ProtocolMessage.RedirectUri.Replace("http://", "https://", StringComparison.OrdinalIgnoreCase);
