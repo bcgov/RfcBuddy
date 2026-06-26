@@ -1,0 +1,6 @@
+# Verify Extension Configuration
+
+# Report formatting
+report:
+  # Maximum number of findings in the report table (overflow is summarized)
+  max_findings: 50
