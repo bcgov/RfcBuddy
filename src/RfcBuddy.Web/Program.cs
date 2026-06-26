@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -19,6 +20,18 @@ builder.Services.AddScoped<IWordService, WordService>();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddHealthChecks();
+
+// Persist Data Protection keys to the shared data volume so every replica uses
+// the same key ring. Without a shared key ring each pod generates its own keys
+// and cannot decrypt the auth cookie, antiforgery token, or OIDC correlation/
+// nonce cookies issued by another pod. That mismatch is what forces a second
+// OIDC login on the first cross-pod POST ("Apply filters and download RFCs").
+// SetApplicationName must be identical across replicas so purpose strings match.
+string dataProtectionKeysPath = Path.Combine(builder.Configuration["DataFolder"] ?? "./data", "keys");
+Directory.CreateDirectory(dataProtectionKeysPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
+    .SetApplicationName("RfcBuddy");
 
 // Trust proxy headers (for OpenShift HTTPS)
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
