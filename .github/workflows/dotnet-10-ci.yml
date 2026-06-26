@@ -73,10 +73,12 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=dev.build${{ github.run_number }},enable=${{ github.ref == 'refs/heads/develop' }}
+            type=raw,value=dev.build${{ github.run_number }},enable=${{ github.ref == 'refs/heads/dev' }}
             type=raw,value=main.build${{ github.run_number }},enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,prefix=dev.,enable=${{ github.ref == 'refs/heads/dev' }}
+            type=sha,prefix=main.,enable=${{ github.ref == 'refs/heads/main' }}
             type=ref,event=branch
             type=ref,event=pr
             type=sha,prefix=build-
