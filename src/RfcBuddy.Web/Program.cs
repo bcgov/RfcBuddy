@@ -60,8 +60,8 @@ builder.Services.AddAuthentication(options =>
         options.GetClaimsFromUserInfoEndpoint = true;
         options.ResponseType = OpenIdConnectResponseType.Code;
         // Use Pushed Authorization Requests (PAR) when Keycloak advertises the endpoint.
-        // The OnRedirectToIdentityProvider event below runs before the PAR back-channel
-        // push, so the redirect_uri is corrected to https before it is sent to Keycloak.
+        // Forwarded headers (UseForwardedHeaders) promote proxied requests to https, so the
+        // redirect_uri is generated correctly for the PAR back-channel push to Keycloak.
         options.PushedAuthorizationBehavior = PushedAuthorizationBehavior.UseIfAvailable;
         options.NonceCookie.SameSite = SameSiteMode.Unspecified;
         options.CorrelationCookie.SameSite = SameSiteMode.Unspecified;
@@ -83,20 +83,6 @@ builder.Services.AddAuthentication(options =>
             RoleClaimType = ClaimTypes.Role,
             ValidateIssuer = true,
         };
-
-        options.Events = new OpenIdConnectEvents
-        {
-            OnRedirectToIdentityProvider = context =>
-            {
-                // Force HTTPS redirect URI when running behind a TLS-terminating reverse proxy (like OpenShift route)
-                if (context.Request.Headers.ContainsKey("X-Forwarded-Proto") &&
-                    context.Request.Headers["X-Forwarded-Proto"].ToString().Equals("https", StringComparison.OrdinalIgnoreCase))
-                {
-                    context.ProtocolMessage.RedirectUri = context.ProtocolMessage.RedirectUri.Replace("http://", "https://", StringComparison.OrdinalIgnoreCase);
-                }
-                return Task.CompletedTask;
-            }
-        };
     });
 
 var app = builder.Build();
@@ -106,19 +92,6 @@ app.UseForwardedHeaders();
 // Anonymous liveness/readiness endpoint for OpenShift probes. Must NOT require auth,
 // otherwise the probe triggers the OIDC/PAR challenge and the pod never goes Ready.
 app.MapHealthChecks("/healthz").AllowAnonymous();
-
-// TEMPORARY: verifies that ForwardedHeaders promotes the request to https behind the
-// OpenShift route. Hit https://<route-host>/debug/forwarded and confirm "scheme":"https".
-// Remove this endpoint once proxy header handling is confirmed.
-app.MapGet("/debug/forwarded", (HttpContext ctx) => Results.Json(new
-{
-    scheme = ctx.Request.Scheme,
-    host = ctx.Request.Host.Value,
-    isHttps = ctx.Request.IsHttps,
-    xForwardedProto = ctx.Request.Headers["X-Forwarded-Proto"].ToString(),
-    xForwardedFor = ctx.Request.Headers["X-Forwarded-For"].ToString(),
-    xForwardedHost = ctx.Request.Headers["X-Forwarded-Host"].ToString(),
-}));
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
