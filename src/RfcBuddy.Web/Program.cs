@@ -25,6 +25,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
     options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
+    options.ForwardLimit = null; // Trust all proxy hops in OpenShift
 });
 
 //Authentication
@@ -43,7 +44,9 @@ builder.Services.AddAuthentication(options =>
         //Sets the cookie name and maxage, so the cookie is invalidated.
         cookie.Cookie.Name = "keycloak.cookie";
         cookie.Cookie.MaxAge = TimeSpan.FromMinutes(600);
-        cookie.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        cookie.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
         cookie.SlidingExpiration = true;
     })
     .AddOpenIdConnect(options =>
@@ -55,8 +58,22 @@ builder.Services.AddAuthentication(options =>
         options.RequireHttpsMetadata = false;
         options.GetClaimsFromUserInfoEndpoint = true;
         options.ResponseType = OpenIdConnectResponseType.Code;
+        // .NET 9+ defaults to UseIfAvailable, which turns on Pushed Authorization
+        // Requests (PAR) when Keycloak advertises the endpoint. PAR validates the
+        // redirect_uri on a back-channel call that fails behind the OpenShift proxy.
+        // Disable it to restore the pre-.NET 9 behavior.
+        options.PushedAuthorizationBehavior = PushedAuthorizationBehavior.Disable;
         options.NonceCookie.SameSite = SameSiteMode.Unspecified;
         options.CorrelationCookie.SameSite = SameSiteMode.Unspecified;
+
+        // Ensure secure cookies for OIDC in production
+        options.NonceCookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
+        options.CorrelationCookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
+
         options.SaveTokens = true;
         options.Scope.Add("openid");
         options.Scope.Add("profile");
@@ -65,6 +82,20 @@ builder.Services.AddAuthentication(options =>
             NameClaimType = "name",
             RoleClaimType = ClaimTypes.Role,
             ValidateIssuer = true,
+        };
+
+        options.Events = new OpenIdConnectEvents
+        {
+            OnRedirectToIdentityProvider = context =>
+            {
+                // Force HTTPS redirect URI when running behind a TLS-terminating reverse proxy (like OpenShift route)
+                if (context.Request.Headers.ContainsKey("X-Forwarded-Proto") && 
+                    context.Request.Headers["X-Forwarded-Proto"].ToString().Equals("https", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.ProtocolMessage.RedirectUri = context.ProtocolMessage.RedirectUri.Replace("http://", "https://", StringComparison.OrdinalIgnoreCase);
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
