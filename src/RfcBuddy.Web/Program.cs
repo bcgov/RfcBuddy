@@ -18,6 +18,7 @@ builder.Services.AddScoped<IWordService, WordService>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddHealthChecks();
 
 // Trust proxy headers (for OpenShift HTTPS)
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -101,6 +102,10 @@ builder.Services.AddAuthentication(options =>
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+
+// Anonymous liveness/readiness endpoint for OpenShift probes. Must NOT require auth,
+// otherwise the probe triggers the OIDC/PAR challenge and the pod never goes Ready.
+app.MapHealthChecks("/healthz").AllowAnonymous();
 
 // TEMPORARY: verifies that ForwardedHeaders promotes the request to https behind the
 // OpenShift route. Hit https://<route-host>/debug/forwarded and confirm "scheme":"https".
