@@ -18,6 +18,7 @@ builder.Services.AddScoped<IWordService, WordService>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddHealthChecks();
 
 // Trust proxy headers (for OpenShift HTTPS)
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -25,6 +26,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
     options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
+    options.ForwardLimit = null; // Trust all proxy hops in OpenShift
 });
 
 //Authentication
@@ -43,7 +45,9 @@ builder.Services.AddAuthentication(options =>
         //Sets the cookie name and maxage, so the cookie is invalidated.
         cookie.Cookie.Name = "keycloak.cookie";
         cookie.Cookie.MaxAge = TimeSpan.FromMinutes(600);
-        cookie.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        cookie.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
         cookie.SlidingExpiration = true;
     })
     .AddOpenIdConnect(options =>
@@ -55,8 +59,21 @@ builder.Services.AddAuthentication(options =>
         options.RequireHttpsMetadata = false;
         options.GetClaimsFromUserInfoEndpoint = true;
         options.ResponseType = OpenIdConnectResponseType.Code;
+        // Use Pushed Authorization Requests (PAR) when Keycloak advertises the endpoint.
+        // Forwarded headers (UseForwardedHeaders) promote proxied requests to https, so the
+        // redirect_uri is generated correctly for the PAR back-channel push to Keycloak.
+        options.PushedAuthorizationBehavior = PushedAuthorizationBehavior.UseIfAvailable;
         options.NonceCookie.SameSite = SameSiteMode.Unspecified;
         options.CorrelationCookie.SameSite = SameSiteMode.Unspecified;
+
+        // Ensure secure cookies for OIDC in production
+        options.NonceCookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
+        options.CorrelationCookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
+
         options.SaveTokens = true;
         options.Scope.Add("openid");
         options.Scope.Add("profile");
@@ -71,6 +88,10 @@ builder.Services.AddAuthentication(options =>
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+
+// Anonymous liveness/readiness endpoint for OpenShift probes. Must NOT require auth,
+// otherwise the probe triggers the OIDC/PAR challenge and the pod never goes Ready.
+app.MapHealthChecks("/healthz").AllowAnonymous();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
