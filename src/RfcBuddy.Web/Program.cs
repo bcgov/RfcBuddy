@@ -58,11 +58,10 @@ builder.Services.AddAuthentication(options =>
         options.RequireHttpsMetadata = false;
         options.GetClaimsFromUserInfoEndpoint = true;
         options.ResponseType = OpenIdConnectResponseType.Code;
-        // .NET 9+ defaults to UseIfAvailable, which turns on Pushed Authorization
-        // Requests (PAR) when Keycloak advertises the endpoint. PAR validates the
-        // redirect_uri on a back-channel call that fails behind the OpenShift proxy.
-        // Disable it to restore the pre-.NET 9 behavior.
-        options.PushedAuthorizationBehavior = PushedAuthorizationBehavior.Disable;
+        // Use Pushed Authorization Requests (PAR) when Keycloak advertises the endpoint.
+        // The OnRedirectToIdentityProvider event below runs before the PAR back-channel
+        // push, so the redirect_uri is corrected to https before it is sent to Keycloak.
+        options.PushedAuthorizationBehavior = PushedAuthorizationBehavior.UseIfAvailable;
         options.NonceCookie.SameSite = SameSiteMode.Unspecified;
         options.CorrelationCookie.SameSite = SameSiteMode.Unspecified;
 
@@ -102,6 +101,19 @@ builder.Services.AddAuthentication(options =>
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+
+// TEMPORARY: verifies that ForwardedHeaders promotes the request to https behind the
+// OpenShift route. Hit https://<route-host>/debug/forwarded and confirm "scheme":"https".
+// Remove this endpoint once proxy header handling is confirmed.
+app.MapGet("/debug/forwarded", (HttpContext ctx) => Results.Json(new
+{
+    scheme = ctx.Request.Scheme,
+    host = ctx.Request.Host.Value,
+    isHttps = ctx.Request.IsHttps,
+    xForwardedProto = ctx.Request.Headers["X-Forwarded-Proto"].ToString(),
+    xForwardedFor = ctx.Request.Headers["X-Forwarded-For"].ToString(),
+    xForwardedHost = ctx.Request.Headers["X-Forwarded-Host"].ToString(),
+}));
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
