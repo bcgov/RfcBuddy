@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-30
 
-**Status**: Draft
+**Status**: Completed
 
 **Input**: User description: "I want to see the last 5 weeks of completed RFCs in each of the 3 keyword areas. If an RFC was updated in those 5 weeks, I want to see only the latest version. Also, display the version number from the project file in the bottom left corner of the app."
 
