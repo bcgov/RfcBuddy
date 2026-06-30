@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.HttpOverrides;
 using RfcBuddy.App.Services;
+using RfcBuddy.Web.Services;
 using System.Security.Claims;
 using System.Security.Principal;
 
@@ -16,6 +17,8 @@ builder.Services.AddScoped<IAppSettingsService, AppSettingsService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRfcService, ExcelService>();
 builder.Services.AddScoped<IWordService, WordService>();
+builder.Services.AddSingleton<IRfcArchiveService, RfcArchiveService>();
+builder.Services.AddHostedService<ArchiveUpdateService>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();

@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@using RfcBuddy.Web.Support
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -34,7 +36,8 @@
         @RenderBody()
     </main>
     <footer>
-        &copy; @DateTime.Now.Year - Government of B.C.
+        <span>&copy; @DateTime.Now.Year - Government of B.C.</span>
+        <span class="app-version">Version @AppVersion.Current</span>
     </footer>
     <script src="~/lib/jquery/jquery.min.js"></script>
     <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>

@@ -11,6 +11,11 @@ public class AppSettings
     public string DataFolder { get; set; } = string.Empty;
 
     /// <summary>
+    /// The interval in days between background archive refreshes.
+    /// </summary>
+    public int ArchiveUpdateIntervalDays { get; set; } = 7;
+
+    /// <summary>
     /// The URL to retrieve the 365-day change schedule Excel sheet.
     /// </summary>
     public string SourceUrl { get; set; } = string.Empty;

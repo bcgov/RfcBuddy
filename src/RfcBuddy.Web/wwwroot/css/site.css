@@ -82,4 +82,12 @@ footer {
     line-height: 3em;
     height: 50px;
     flex: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.app-version {
+    color: #D6E8FF;
+    font-size: 0.875rem;
 }

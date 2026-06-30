@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RfcBuddy.Web.Models;
+using System.Reflection;
 
 namespace RfcBuddy.Web.Controllers.Tests;
 
@@ -17,7 +18,8 @@ public class HomeControllerTests : TestBase
         var userService = MockUserService();
         var excelService = MockExcelService();
         var wordService = MockWordService();
-        _controller = new(logger, userService, excelService, wordService)
+        var archiveService = MockArchiveService();
+        _controller = new(logger, userService, excelService, wordService, archiveService)
         {
             ControllerContext = new ControllerContext()
             {
@@ -45,5 +47,16 @@ public class HomeControllerTests : TestBase
         Assert.IsTrue(result is ViewResult);
         var viewModel = (result as ViewResult)!.Model;
         Assert.IsTrue(viewModel is ErrorViewModel);
+    }
+
+    [TestMethod()]
+    public void AppVersionReturnsAVersionStringWhenAvailable()
+    {
+        var assembly = Assembly.GetAssembly(typeof(HomeController))!;
+        var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
+        var trimmed = informationalVersion.Split('+')[0];
+
+        Assert.IsFalse(string.IsNullOrWhiteSpace(trimmed));
+        Assert.AreNotEqual("unknown", trimmed);
     }
 }
