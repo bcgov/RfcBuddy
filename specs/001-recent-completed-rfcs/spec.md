@@ -153,7 +153,8 @@ without anyone generating a document.
   current date and not in the future).
 - **FR-004**: When the same RFC number appears more than once within the 5-week
   window, the listing MUST show only the occurrence with the most recent end
-  date/time and MUST suppress the older occurrence(s).
+  date/time and MUST suppress the older occurrence(s). *(Display-layer rule; the
+  archive-layer enforcement of the same dedup rule is FR-017.)*
 - **FR-005**: The 5-week lookback window MUST be a fixed period and MUST NOT
   require user configuration.
 - **FR-006**: Each keyword area's completed listing MUST display, for every RFC
@@ -181,11 +182,12 @@ without anyone generating a document.
 - **FR-015**: The completed listing MUST be derived from the shared archive and
   sorted into the three keyword areas using the user's current keywords at the
   time the document is generated.
-- **FR-016**: The archive MUST retain only RFCs whose end date is within the
-  5-week window and MUST prune RFCs whose end date is older than 5 weeks.
+- **FR-016**: The archive MUST prune entries whose end date is older than 5 weeks
+  (`EndDate < now − 35 days`). Future-dated RFCs (end date not yet passed) MUST NOT
+  be pruned — they remain stored until 5 weeks after their end date. (See data-model R4.)
 - **FR-017**: When the same RFC number has been observed more than once, the
   archive MUST resolve to the version with the most recent end date/time for
-  display.
+  display. *(Archive-layer enforcement of the same dedup rule stated in FR-004.)*
 - **FR-018**: The system MUST run a recurring background update, at least weekly,
   that refreshes the RFC source and updates the shared archive without requiring
   any user interaction.

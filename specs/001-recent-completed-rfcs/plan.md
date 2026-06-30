@@ -99,7 +99,9 @@ src/
 │       ├── ExcelService.cs           # Add GetAllRfcs() + reusable CategorizeRfcs(); ProcessRfcs preserved
 │       ├── RfcArchiveService.cs       # NEW: IRfcArchiveService — update/prune/query shared archive
 │       └── WordService.cs            # Extend CreateWordFile() with completed RFC lists; add Completed subsection
-├── RfcBuddy.App/Objects/AppSettings.cs   # Add ArchiveUpdateIntervalDays (default 7)
+├── RfcBuddy.App/
+│   └── Objects/
+│       └── AppSettings.cs            # Add ArchiveUpdateIntervalDays (default 7)
 ├── RfcBuddy.Web/
 │   ├── Controllers/
 │   │   └── HomeController.cs          # Capture observed RFCs → archive; read completed → categorize → Word
