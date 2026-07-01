@@ -143,6 +143,13 @@ public sealed class RfcArchiveService : IRfcArchiveService
             return [];
         }
 
+        var fileInfo = new FileInfo(_archiveFilePath);
+        if (fileInfo.Length > maxFileSizeBytes)
+        {
+            _logger.LogWarning("Archive size limit exceeded on read. Bytes={Bytes}", fileInfo.Length);
+            File.Delete(_archiveFilePath);
+            return [];
+        }
         try
         {
             string json = File.ReadAllText(_archiveFilePath);
