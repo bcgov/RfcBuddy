@@ -52,11 +52,13 @@ public class HomeControllerTests : TestBase
     [TestMethod()]
     public void AppVersionReturnsAVersionStringWhenAvailable()
     {
-        var assembly = Assembly.GetAssembly(typeof(HomeController))!;
-        var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
-        var trimmed = informationalVersion.Split('+')[0];
+        string current = RfcBuddy.Web.Support.AppVersion.Current;
 
-        Assert.IsFalse(string.IsNullOrWhiteSpace(trimmed));
-        Assert.AreNotEqual("unknown", trimmed);
+        var assembly = typeof(RfcBuddy.Web.Support.AppVersion).Assembly;
+        var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        string expected = string.IsNullOrWhiteSpace(informationalVersion) ? "unknown" : informationalVersion.Split('+')[0];
+
+        Assert.AreEqual(expected, current);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(current));
     }
 }
