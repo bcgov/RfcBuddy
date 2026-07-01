@@ -19,6 +19,7 @@ aside {
     left: 0;
     bottom: 0;
     background-color: #0E3468;
+    padding: 20px 20px 20px 20px;
 }
 
 header,
@@ -88,6 +89,9 @@ footer {
 }
 
 .app-version {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
     color: #D6E8FF;
     font-size: 0.875rem;
 }

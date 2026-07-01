@@ -49,47 +49,47 @@ public sealed class RfcArchiveService : IRfcArchiveService
 
     public void UpdateArchive(IEnumerable<Rfc> observedRfcs)
     {
-        List<Rfc> merged = LoadArchiveRecords();
-        DateTime now = DateTime.Now;
-
-        foreach (Rfc observedRfc in observedRfcs)
-        {
-            if (string.IsNullOrWhiteSpace(observedRfc.RfcNumber))
-            {
-                continue;
-            }
-
-            Rfc? existing = merged.FirstOrDefault(x => string.Equals(x.RfcNumber, observedRfc.RfcNumber, StringComparison.OrdinalIgnoreCase));
-            if (existing is null)
-            {
-                merged.Add(CloneRfc(observedRfc));
-            }
-            else if (observedRfc.EndDate > existing.EndDate)
-            {
-                int index = merged.IndexOf(existing);
-                merged[index] = CloneRfc(observedRfc);
-            }
-        }
-
-        DateTime pruneCutoff = now.AddDays(-retentionDays);
-        merged = [.. merged.Where(x => x.EndDate != default && x.EndDate >= pruneCutoff).OrderBy(x => x.RfcNumber, StringComparer.OrdinalIgnoreCase)];
-
-        if (merged.Count > maxRecords)
-        {
-            _logger.LogWarning("Archive record limit exceeded. Records={RecordCount}", merged.Count);
-            throw new InvalidOperationException($"The RFC archive record limit of {maxRecords} was exceeded.");
-        }
-
-        string json = JsonSerializer.Serialize(merged, new JsonSerializerOptions { WriteIndented = true });
-        if (Encoding.UTF8.GetByteCount(json) > maxFileSizeBytes)
-        {
-            _logger.LogWarning("Archive size limit exceeded. Bytes={Bytes}", Encoding.UTF8.GetByteCount(json));
-            throw new InvalidOperationException($"The RFC archive size limit of {maxFileSizeBytes} bytes was exceeded.");
-        }
-
         _writeMutex.WaitOne();
         try
         {
+            List<Rfc> merged = LoadArchiveRecords();
+            DateTime now = DateTime.Now;
+
+            foreach (Rfc observedRfc in observedRfcs)
+            {
+                if (string.IsNullOrWhiteSpace(observedRfc.RfcNumber))
+                {
+                    continue;
+                }
+
+                Rfc? existing = merged.FirstOrDefault(x => string.Equals(x.RfcNumber, observedRfc.RfcNumber, StringComparison.OrdinalIgnoreCase));
+                if (existing is null)
+                {
+                    merged.Add(CloneRfc(observedRfc));
+                }
+                else if (observedRfc.EndDate > existing.EndDate)
+                {
+                    int index = merged.IndexOf(existing);
+                    merged[index] = CloneRfc(observedRfc);
+                }
+            }
+
+            DateTime pruneCutoff = now.AddDays(-retentionDays);
+            merged = [.. merged.Where(x => x.EndDate != default && x.EndDate >= pruneCutoff).OrderBy(x => x.RfcNumber, StringComparer.OrdinalIgnoreCase)];
+
+            if (merged.Count > maxRecords)
+            {
+                _logger.LogWarning("Archive record limit exceeded. Records={RecordCount}", merged.Count);
+                throw new InvalidOperationException($"The RFC archive record limit of {maxRecords} was exceeded.");
+            }
+
+            string json = JsonSerializer.Serialize(merged, new JsonSerializerOptions { WriteIndented = true });
+            if (Encoding.UTF8.GetByteCount(json) > maxFileSizeBytes)
+            {
+                _logger.LogWarning("Archive size limit exceeded. Bytes={Bytes}", Encoding.UTF8.GetByteCount(json));
+                throw new InvalidOperationException($"The RFC archive size limit of {maxFileSizeBytes} bytes was exceeded.");
+            }
+
             for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
                 try
@@ -143,13 +143,20 @@ public sealed class RfcArchiveService : IRfcArchiveService
             return [];
         }
 
-        var fileInfo = new FileInfo(_archiveFilePath);
-        if (fileInfo.Length > maxFileSizeBytes)
-        {
-            _logger.LogWarning("Archive size limit exceeded on read. Bytes={Bytes}", fileInfo.Length);
-            File.Delete(_archiveFilePath);
-            return [];
-        }
+        var fileInfo = new FileInfo(_archiveFilePath);
+
+        if (fileInfo.Length > maxFileSizeBytes)
+
+        {
+
+            _logger.LogWarning("Archive size limit exceeded on read. Bytes={Bytes}", fileInfo.Length);
+
+            File.Delete(_archiveFilePath);
+
+            return [];
+
+        }
+
         try
         {
             string json = File.ReadAllText(_archiveFilePath);
