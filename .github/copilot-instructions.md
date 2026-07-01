@@ -27,11 +27,13 @@ src/
 ├── RfcBuddy.App/        # Core library: services, domain objects, cryptography
 │   ├── Core/            # Cryptography helpers
 │   ├── Objects/         # Domain models (Rfc, AppSettings, PreviousRfc)
-│   └── Services/        # AppSettingsService, ExcelService, UserService, WordService
+│   └── Services/        # AppSettingsService, ExcelService, UserService, WordService, RfcArchiveService
 ├── RfcBuddy.Web/        # ASP.NET Core MVC web app (OIDC auth, controllers, Razor views)
 │   ├── Controllers/     # HomeController (single-page MVC app)
 │   ├── Models/          # ViewModels
-│   └── Views/           # Razor views
+│   ├── Services/        # ArchiveUpdateService (background hosted service)
+│   ├── Support/         # AppVersion (assembly version resolution)
+│   └── Views/           # Razor views, includes footer with app version
 ├── RfcBuddy.App.Tests/  # MSTest unit tests for RfcBuddy.App
 └── RfcBuddy.Web.Tests/  # MSTest unit tests for RfcBuddy.Web
 
@@ -88,10 +90,13 @@ docker run -p 8080:8080 rfcbuddy
 
 ## Recent Changes
 
+- **001-recent-completed-rfcs (merged 2026-06-30)**: Added RFC history archive with weekly background refresh, completed RFC listings (5-week window, deduped per RFC number), and app version footer. New services: `RfcArchiveService` (shared JSON archive with Mutex concurrency, pruning, dedup), `ArchiveUpdateService` (weekly background update + startup catch-up). Refactored `ExcelService` with `GetAllRfcs()` and `CategorizeRfcs()`. Enhanced `WordService` signature and `HomeController` wiring. 18 new/updated unit tests, all passing.
+
 
 ## Known Issues & Gotchas
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+shell commands, and other important information, read the current plan at
+`specs/001-recent-completed-rfcs/plan.md`.
 <!-- SPECKIT END -->

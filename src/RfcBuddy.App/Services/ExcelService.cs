@@ -29,6 +29,16 @@ public interface IRfcService
     /// Gets the latest changes if it's been longer than the refresh interval in the app settings.
     /// </summary>
     public Task GetLatestChanges();
+
+    /// <summary>
+    /// Returns every RFC parsed from the current schedule file.
+    /// </summary>
+    public List<Rfc> GetAllRfcs();
+
+    /// <summary>
+    /// Categorizes RFCs into ministry, general, and other lists based on the supplied keywords.
+    /// </summary>
+    public void CategorizeRfcs(IEnumerable<Rfc> rfcs, List<string> ministryKeywords, List<string> generalKeywords, List<string> ignoreKeywords, out List<Rfc> ministryRfcs, out List<Rfc> generalRfcs, out List<Rfc> otherRfcs);
 }
 
 /// <summary>
@@ -91,10 +101,17 @@ public class ExcelService(IAppSettingsService appSettingsService) : IRfcService
     /// <returns>The total number of RFCs that were processed</returns>
     public int ProcessRfcs(List<string> ministryKeywords, List<string> generalKeywords, List<string> ignoreKeywords, out List<Rfc> ministryRfcs, out List<Rfc> generalRfcs, out List<Rfc> otherRfcs)
     {
-        ministryRfcs = [];
-        generalRfcs = [];
-        otherRfcs = [];
-        int totalRfcs = 0;
+        List<Rfc> allRfcs = GetAllRfcs();
+        CategorizeRfcs(allRfcs, ministryKeywords, generalKeywords, ignoreKeywords, out ministryRfcs, out generalRfcs, out otherRfcs);
+        return allRfcs.Count;
+    }
+
+    /// <summary>
+    /// Returns every RFC parsed from the current schedule file.
+    /// </summary>
+    public List<Rfc> GetAllRfcs()
+    {
+        List<Rfc> parsedRfcs = [];
         if (File.Exists(ExcelFile))
         {
             //Required for the ExcelDataReader to understand the encoding of the 365-day change Excel file.
@@ -108,36 +125,52 @@ public class ExcelService(IAppSettingsService appSettingsService) : IRfcService
             }
             if (null != excelData && excelData.Tables.Count > 0)
             {
-                //Parse and filter RFCs from Excel data
-                DataTable Rfcs = excelData.Tables[0];
+                DataTable rfcs = excelData.Tables[0];
                 int currentRow = 1;
-                while (currentRow < Rfcs.Rows.Count)
+                while (currentRow < rfcs.Rows.Count)
                 {
-                    Rfc currentRfc = ReadRfc(ref Rfcs, currentRow);
-                    if (!string.IsNullOrEmpty(currentRfc.RfcNumber))
+                    Rfc currentRfc = ReadRfc(ref rfcs, currentRow);
+                    if (!string.IsNullOrWhiteSpace(currentRfc.RfcNumber))
                     {
-                        totalRfcs++;
-                        //Add ministry-specific RFCs
-                        if (RfcKeywordMatches(ref currentRfc, ministryKeywords))
-                        {
-                            ministryRfcs.Add(currentRfc);
-                        }
-                        //Add general RFCs
-                        else if (RfcKeywordMatches(ref currentRfc, generalKeywords))
-                        {
-                            generalRfcs.Add(currentRfc);
-                        }
-                        //Ignore RFCs that contain keywords that should be filtered out.
-                        else if (!RfcKeywordMatches(ref currentRfc, ignoreKeywords))
-                        {
-                            otherRfcs.Add(currentRfc);
-                        }
+                        parsedRfcs.Add(currentRfc);
                     }
                     currentRow++;
                 }
             }
         }
-        return totalRfcs;
+        return parsedRfcs;
+    }
+
+    /// <summary>
+    /// Categorizes RFCs into ministry, general, and other lists based on the supplied keywords.
+    /// </summary>
+    public void CategorizeRfcs(IEnumerable<Rfc> rfcs, List<string> ministryKeywords, List<string> generalKeywords, List<string> ignoreKeywords, out List<Rfc> ministryRfcs, out List<Rfc> generalRfcs, out List<Rfc> otherRfcs)
+    {
+        ministryRfcs = [];
+        generalRfcs = [];
+        otherRfcs = [];
+
+        foreach (Rfc currentRfc in rfcs)
+        {
+            if (string.IsNullOrWhiteSpace(currentRfc.RfcNumber))
+            {
+                continue;
+            }
+
+            Rfc categorizedRfc = currentRfc;
+            if (RfcKeywordMatches(ref categorizedRfc, ministryKeywords))
+            {
+                ministryRfcs.Add(categorizedRfc);
+            }
+            else if (RfcKeywordMatches(ref categorizedRfc, generalKeywords))
+            {
+                generalRfcs.Add(categorizedRfc);
+            }
+            else if (!RfcKeywordMatches(ref categorizedRfc, ignoreKeywords))
+            {
+                otherRfcs.Add(categorizedRfc);
+            }
+        }
     }
 
     /// <summary>

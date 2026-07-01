@@ -1,4 +1,6 @@
-﻿namespace RfcBuddy.App.Objects
+﻿using System.Text.Json.Serialization;
+
+namespace RfcBuddy.App.Objects
 {
     /// <summary>
     /// Holds a single RFC.
@@ -52,6 +54,7 @@
         /// <summary>
         /// A list of important keywords in this RFC. Those can be highlighted when generating user output.
         /// </summary>
+        [JsonIgnore]
         public List<string> Keywords { get; set; } = [];
     }
 }

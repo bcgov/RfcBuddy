@@ -12,7 +12,7 @@ namespace RfcBuddy.App.Services;
 /// </summary>
 public interface IWordService
 {
-    void CreateWordFile(ref Stream wordFile, List<Rfc> ministryRfcs, List<Rfc> generalRfcs, List<Rfc> otherRfcs, List<PreviousRfc> previousRfcs);
+    void CreateWordFile(ref Stream wordFile, List<Rfc> ministryRfcs, List<Rfc> generalRfcs, List<Rfc> otherRfcs, List<PreviousRfc> previousRfcs, List<Rfc> completedMinistryRfcs, List<Rfc> completedGeneralRfcs, List<Rfc> completedOtherRfcs);
 }
 
 public class WordService : IWordService
@@ -25,7 +25,7 @@ public class WordService : IWordService
 
     private const string wordDateFormat = "ddd yyyy-MM-dd HH:mm";
 
-    public void CreateWordFile(ref Stream wordFile, List<Rfc> ministryRfcs, List<Rfc> generalRfcs, List<Rfc> otherRfcs, List<PreviousRfc> previousRfcs)
+    public void CreateWordFile(ref Stream wordFile, List<Rfc> ministryRfcs, List<Rfc> generalRfcs, List<Rfc> otherRfcs, List<PreviousRfc> previousRfcs, List<Rfc> completedMinistryRfcs, List<Rfc> completedGeneralRfcs, List<Rfc> completedOtherRfcs)
     {
         using DocX document = DocX.Create(wordFile);
 
@@ -51,26 +51,39 @@ public class WordService : IWordService
         Paragraph ministry = document.InsertParagraph("Ministry: " + ministryRfcs.Count + " RFCs");
         ministry.StyleId = "Heading1";
         ministry.Color(ministryHighlight);
-        AddRfcSection(document, ministryRfcs, previousRfcs, ministryHighlight);
+        AddRfcSection(document, ministryRfcs, previousRfcs, ministryHighlight, completedMinistryRfcs);
 
         // General RFCs
         Paragraph general = document.InsertParagraph("General: " + generalRfcs.Count + " RFCs");
         general.StyleId = "Heading1";
         general.Color(generalHighlight);
-        AddRfcSection(document, generalRfcs, previousRfcs, generalHighlight);
+        AddRfcSection(document, generalRfcs, previousRfcs, generalHighlight, completedGeneralRfcs);
 
         // Other RFCs
         Paragraph other = document.InsertParagraph("Other / unclassified: " + otherRfcs.Count + " RFCs");
         other.StyleId = "Heading1";
-        AddRfcSection(document, otherRfcs, previousRfcs, Color.Black);
+        AddRfcSection(document, otherRfcs, previousRfcs, Color.Black, completedOtherRfcs);
 
         document.Save();
     }
 
-    private void AddRfcSection(DocX document, List<Rfc> rfcs, List<PreviousRfc> previousRfcs, Color keywordHighlight)
+    private void AddRfcSection(DocX document, List<Rfc> rfcs, List<PreviousRfc> previousRfcs, Color keywordHighlight, List<Rfc> completedRfcs)
     {
         DateTime now = DateTime.Now;
         List<string> unchangedRfcs = new List<string>();
+
+        // Completed (last 5 weeks)
+        Paragraph pCompleted = document.InsertParagraph("Completed (last 5 weeks)");
+        pCompleted.StyleId = "Heading2";
+        int pCompletedCount = 0;
+        foreach (Rfc currentRfc in completedRfcs.OrderByDescending(x => x.EndDate).ThenByDescending(x => x.StartDate))
+        {
+            AddRfc(document, currentRfc, null, keywordHighlight);
+            document.InsertParagraph();
+            document.InsertParagraph();
+            pCompletedCount++;
+        }
+        if (pCompletedCount == 0) document.InsertParagraph("No RFCs found.");
 
         // In Progress
         Paragraph pProgress = document.InsertParagraph("In Progress");
