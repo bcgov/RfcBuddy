@@ -121,3 +121,6 @@ node_modules/
 
 #Local SonarQube scan results
 .scannerwork/
+
+#Codebase Memory
+.codebase-memory/
