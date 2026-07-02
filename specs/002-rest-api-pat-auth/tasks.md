@@ -33,7 +33,8 @@
 - [ ] T003 Create `RfcChangeTracker.cs` in `src/RfcBuddy.App/Services/RfcChangeTracker.cs` for comparing RFCs vs baseline
 - [ ] T004 [P] Create unit tests for `RfcChangeTracker` in `tests/RfcBuddy.App.Tests/Services/RfcChangeTrackerTests.cs`
 - [ ] T005 Modify `IUserService` and `UserService` in `src/RfcBuddy.App/Services/UserService.cs` to add baseline scope support for `ApiPreviousRFCs.txt`
-- [ ] T006 [P] Update user service unit tests in `tests/RfcBuddy.App.Tests/Services/UserServiceTests.cs` to exercise baseline scope selection
+- [ ] T005a [US1] Utilize local folder-scoped mutexes/file-locks for API previous rfc baseline reads and writes in `UserService.cs` instead of global locks (TASK-SEC-003)
+- [ ] T006 [P] Update user service unit tests in `tests/RfcBuddy.App.Tests/Services/UserServiceTests.cs` to exercise baseline scope selection and localized user folder-specific locks
 - [ ] T007 Modify `IRfcService` and `ExcelService` in `src/RfcBuddy.App/Services/ExcelService.cs` to add keyword filtering helper with ignore precedence
 - [ ] T008 [P] Add unit tests for `FilterRfcs` keyword matching in `tests/RfcBuddy.App.Tests/Services/ExcelServiceTests.cs`
 
@@ -56,6 +57,7 @@
 
 - [ ] T011 [P] [US1] Create API DTO models `RfcSearchRequest.cs`, `RfcSearchResponse.cs`, and `RfcResult.cs` in `src/RfcBuddy.Web/Models/Api/`
 - [ ] T012 [US1] Implement custom scheme `ApiTokenAuthenticationHandler.cs` in `src/RfcBuddy.Web/Authentication/ApiTokenAuthenticationHandler.cs`
+- [ ] T012a [P] [US1] Implement timing delay shields on authentication failures in `ApiTokenAuthenticationHandler.cs` to prevent side-channel brute-forcing (TASK-SEC-001)
 - [ ] T013 [US1] Implement `RfcApiController.cs` in `src/RfcBuddy.Web/Controllers/RfcApiController.cs` integrating change tracking and filtering
 - [ ] T014 [US1] Register `"ApiToken"` authentication scheme and map routes in `src/RfcBuddy.Web/Program.cs`
 
@@ -77,7 +79,8 @@
 ### Implementation for User Story 2
 
 - [ ] T017 [P] [US2] Create token record domain model `ApiToken.cs` in `src/RfcBuddy.App/Objects/ApiToken.cs`
-- [ ] T018 [US2] Implement `IApiTokenService` and `ApiTokenService.cs` in `src/RfcBuddy.App/Services/ApiTokenService.cs` using Mutex-serialized writes to `apitokens.json`
+- [ ] T017a [P] [US2] Create strongly typed secret token wrappers with redacted `.ToString()` overrides to prevent diagnostic leaks (TASK-SEC-002)
+- [ ] T018 [US2] Implement `IApiTokenService` and `ApiTokenService.cs` in `src/RfcBuddy.App/Services/ApiTokenService.cs` using Mutex-serialized writes to `apitokens.json` and utilizing the secret wrapper
 - [ ] T019 [US2] Create MVC controller `ApiTokensController.cs` in `src/RfcBuddy.Web/Controllers/ApiTokensController.cs`
 - [ ] T020 [P] [US2] Create token list and confirmation view models in `src/RfcBuddy.Web/Models/TokenListViewModel.cs`
 - [ ] T021 [US2] Create token catalog index view `Index.cshtml` in `src/RfcBuddy.Web/Views/ApiTokens/`
@@ -102,6 +105,8 @@
 
 - [ ] T025 [P] [US3] Create user registry domain model `UserRecord.cs` in `src/RfcBuddy.App/Objects/UserRecord.cs`
 - [ ] T026 [US3] Implement `IUserRegistryService` and `UserRegistryService.cs` in `src/RfcBuddy.App/Services/UserRegistryService.cs` with Mutex-safe bootstrap and last-active filesystem resolution
+- [ ] T026a [US3] Perform administrator demotion checking routines strictly nested inside active mutex locks on `users.json` to prevent de-elevation race conditions (TASK-SEC-004)
+- [ ] T026b [US3] Inject structured logging audit lines `[AUDIT]` recording administrative actions and credential revocations with hashed actor references (TASK-SEC-005)
 - [ ] T027 [US3] Add a global action filter or middleware in `src/RfcBuddy.Web/Support/UserRegistrationFilter.cs` to call `EnsureRegistered` on interactive logins
 - [ ] T028 [US3] Register the user registry service and register the custom registration filter in `src/RfcBuddy.Web/Program.cs`
 - [ ] T029 [US3] Implement `"Admin"` policy requirement and authorization handler in `src/RfcBuddy.Web/Authorization/AdminRequirement.cs`
@@ -125,8 +130,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T034 [US4] Implement `UserMaintenanceService.cs` in `src/RfcBuddy.Web/Services/UserMaintenanceService.cs` as a hosted background service
-- [ ] T035 [US4] Register `UserMaintenanceService` in `src/RfcBuddy.Web/Program.cs`
+- [ ] T034 [US4] Implement `UserMaintenanceService.cs` in `src/RfcBuddy.Web/Services/UserMaintenanceService.cs` as a hosted background service that checks the 400-day boundary using `PreviousRFCs.txt` and `ApiPreviousRFCs.txt` file system timestamps, and cascades the deletion of matching user folders, tokens from `apitokens.json`, and records from `users.json`
+- [ ] T035 [US4] Register `UserMaintenanceService` in `src/RfcBuddy.Web/Program.cs` to execute the 400-day automated cleanup periodically
 
 **Checkpoint**: Automated user lifecycle cleanup is active. Inactive folders, files, and tokens are safely purged.
 

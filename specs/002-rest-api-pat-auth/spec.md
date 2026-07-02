@@ -216,7 +216,8 @@ directory is removed.
 - **FR-011**: Only authenticated, logged-in users MUST be able to create Personal
   Access Tokens.
 - **FR-012**: The system MUST allow a user to set a token label and an expiry date
-  at creation time.
+  at creation time. The token label MUST be validated to be non-empty, composed only
+  of safe, printable characters, and capped at a maximum of 100 characters after trimming.
 - **FR-013**: The system MUST enforce a maximum token lifetime of 90 days;
   requests for a longer lifetime MUST be rejected or capped at 90 days, with the
   user informed of the applied expiry.
