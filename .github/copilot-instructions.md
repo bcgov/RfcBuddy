@@ -2,6 +2,8 @@
 
 Supplements project constitution at `.github/memory/constitution.md`. Constitution is highest-authority document; this file provides project-specific technology and architecture context for AI-assisted development.
 
+Use the codebase-memory MCP server for any code searches or architecture queries. If the MCP server is unavailable, use local code search or GitHub search.
+
 ---
 
 ## SpecKit Instructions

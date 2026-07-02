@@ -78,6 +78,37 @@ warnings-as-errors and static analysis remain enforced; least-privilege maintain
 introduce no new projects, no database, and no new dependencies; token secrets remain
 hash-only and identity stays out of logs. Design holds to all five principles.
 
+## UI & UX Design (BC Design System)
+
+The user interfaces are fully integrated into the existing MVC server-rendered framework, styled using custom Bootstrap and CSS classes in general alignment with the BC Design System elements:
+- **Typography and Fonts**: Handled by the custom `BCSans` and `Noto Sans` font declarations in `site.css`.
+- **Theme Colors**: Uses deep BC Govt Blue `#0E3468` for panels/headers/primary buttons and Yellow `#F9B819` for borders and highlights.
+- **Form Controls & Inputs**: Form fields use Bootstrap's standard form layout with strong structural CSS labels and input focus indicators.
+
+### 1. Personal Access Tokens Page (`/ApiTokens/Index`)
+- **Self-Service Actions**: Users can view all non-revoked and unexpired tokens or trigger a new creation.
+- **Card-Structured Layouts**: Tokens are displayed inside clean, styled responsive bootstrap grids or cards instead of unstyled lists.
+- **Badged Metrics & Status**:
+  - `Active` tokens: Decorated with a prominent badge representing an active state.
+  - `Expired` tokens: Marked clearly with a warning status indicator.
+  - `Revoked` tokens: Displays a dark state badge that identifies disabled authentication capabilities.
+- **Revocation Trigger**: Direct, inline form with an anti-forgery token protecting against unauthorized cross-site revocation requests.
+
+### 2. Create Token Form (`/ApiTokens/Create`)
+- **Form Elements**: Self-service input fields for "Label" and "Expiry Date".
+- **Guidance messaging**: Features help copy explaining that maximum lifetime is strictly 90 days. Expiry datepicker implements bounds dynamically.
+- **Single-view raw token reveal**: On successful creation, redirects to the list index but carries the raw token secret through temporary storage. The UI renders this raw token *exactly once* inside an alert panel (`alert-warning` or `alert-critical`) with explicit visual warning instructions to copy the token immediately as it cannot be shown again.
+
+### 3. User Administration Panel (`/Admin/Index`)
+- **Interactive Portal**: Fully secure space gated by the `"Admin"` authorization policy handler.
+- **Users Table**: Fully-responsive grid displaying:
+  - User Identity (Display Name / NameIdentifier mapped fields) and registered Email Address
+  - Last-Active times (resolved safely from change-tracking logs in a friendly format)
+  - Current Administrative Role (Yes/No with clear visual indicators)
+- **Administrative Utilities**:
+  - Mutex-safe Promoted / Demoted options via styled action buttons. Prevent administrative lockout races.
+  - Global Token Inspection & Revocation: Displays a table of all active tokens in the entire system, mapping ownership clearly by user, and allowing the administrator to globally revoke any token instantly.
+
 ## Project Structure
 
 ### Documentation (this feature)
@@ -103,12 +134,12 @@ src/
 ├── RfcBuddy.App/
 │   ├── Objects/
 │   │   ├── ApiToken.cs           # NEW: token record (hash, label, owner, expiry, lastUsed, revoked)
-│   │   ├── UserRecord.cs         # NEW: registry entry (userId hash, identity, isAdmin, firstSeen)
+│   │   ├── UserRecord.cs         # NEW: registry entry (userId hash, identity, email, isAdmin, firstSeen)
 │   │   ├── RfcChangeStatus.cs    # NEW: enum { New, Changed, Unchanged }
 │   │   └── (existing Rfc.cs, PreviousRfc.cs, AppSettings.cs)
 │   ├── Services/
 │   │   ├── ApiTokenService.cs        # NEW: IApiTokenService — create/list/revoke/authenticate/purge
-│   │   ├── UserRegistryService.cs    # NEW: IUserRegistryService — registry, admin bootstrap/roles, last-active, prune
+│   │   ├── UserRegistryService.cs    # NEW: IUserRegistryService — registry (with email resolution), admin bootstrap/roles, last-active, prune
 │   │   ├── RfcChangeTracker.cs       # NEW: shared change-status computation (extracted from WordService)
 │   │   ├── UserService.cs            # MODIFY: add API-scoped baseline (Web/Api) previous-RFC storage
 │   │   └── ExcelService.cs           # MODIFY: add FilterRfcs(include, ignore) helper for the API

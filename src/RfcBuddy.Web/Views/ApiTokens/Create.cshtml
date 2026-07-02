@@ -1,0 +1,34 @@
+@model dynamic
+@{
+    ViewData["Title"] = "Create Personal Access Token";
+    var defaultExpiryString = DateTime.Today.AddDays(90).ToString("yyyy-MM-ddT12:00");
+}
+
+<div>
+    <h2>Create Personal Access Token</h2>
+    <p>
+        Create a new personal access token to allow downstream clients and automated tools to query relevant RFCs on your behalf.
+    </p>
+
+    <p class="alert alert-info">
+        Tokens must expire within 90 days. If you enter a longer expiration, it will be automatically capped to 90 days from today.<br />
+        Write down your generated token value immediately, as it cannot be shown again for security reasons.
+    </p>
+
+    <form asp-action="Create" method="post">
+        <div class="form-group">
+            <label for="label">Token Label</label><br />
+            <input id="label" name="label" class="form-control" required placeholder="e.g. My Integration Script" />
+        </div>
+        <div class="form-group">
+            <label for="expiry">Expiry Date</label><br />
+            <input id="expiry" name="expiry" type="datetime-local" class="form-control" required value="@defaultExpiryString" />
+        </div>
+
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-primary">Create</button>
+        <a asp-action="Index" class="btn btn-light" style="margin-left: 10px;">Cancel</a>
+    </form>
+</div>
+
+

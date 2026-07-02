@@ -16,10 +16,20 @@ public interface IUserService
     public List<PreviousRfc> GetPreviousRfcs();
 
     /// <summary>
+    /// Loads the previously reviewed RFCs for the requested baseline scope.
+    /// </summary>
+    public List<PreviousRfc> GetPreviousRfcs(BaselineScope scope);
+
+    /// <summary>
     /// Saves the given RFCs, with a hash of the dates, asset tags, description, and risk assessment for later comparison.
     /// </summary>
     /// <param name="rfcs">The RFCs to save.</param>
     public void SavePreviousRfcs(IEnumerable<Rfc> rfcs);
+
+    /// <summary>
+    /// Saves the given RFCs for the requested baseline scope.
+    /// </summary>
+    public void SavePreviousRfcs(IEnumerable<Rfc> rfcs, BaselineScope scope);
 
     /// <summary>
     /// Gets the current user's keywords.
@@ -77,6 +87,7 @@ public class UserService(IAppSettingsService appSettingsService, IPrincipal user
     /// The filename to use for storing previous RFCs per user
     /// </summary>
     private const string previousRfcsFileName = "PreviousRFCs.txt";
+    private const string apiPreviousRfcsFileName = "ApiPreviousRFCs.txt";
 
     /// <summary>
     /// The relative path to the previous RFCs file.
@@ -88,16 +99,28 @@ public class UserService(IAppSettingsService appSettingsService, IPrincipal user
     /// </summary>
     private string PreviousRfcsFile => Path.Combine(PreviousRfcsFilePath, previousRfcsFileName);
 
+    private string GetBaselineFilePath(BaselineScope scope)
+    {
+        string fileName = scope == BaselineScope.Api ? apiPreviousRfcsFileName : previousRfcsFileName;
+        return Path.Combine(PreviousRfcsFilePath, fileName);
+    }
+
     /// <summary>
     /// Loads the previously reviewed RFCs into a list.
     /// </summary>
     /// <returns>A list of the previously reviewed RFCs. If none are found, an empty list is returned.</returns>
     public List<PreviousRfc> GetPreviousRfcs()
     {
+        return GetPreviousRfcs(BaselineScope.Web);
+    }
+
+    public List<PreviousRfc> GetPreviousRfcs(BaselineScope scope)
+    {
         List<PreviousRfc> result = [];
-        if (File.Exists(PreviousRfcsFile))
+        string baselineFile = GetBaselineFilePath(scope);
+        if (File.Exists(baselineFile))
         {
-            using StreamReader previousRfcs = File.OpenText(PreviousRfcsFile);
+            using StreamReader previousRfcs = File.OpenText(baselineFile);
             while (!previousRfcs.EndOfStream)
             {
                 string? previousRfc = previousRfcs.ReadLine();
@@ -128,16 +151,22 @@ public class UserService(IAppSettingsService appSettingsService, IPrincipal user
     /// <param name="rfcs">The RFCs to write to the file.</param>
     public void SavePreviousRfcs(IEnumerable<Rfc> rfcs)
     {
+        SavePreviousRfcs(rfcs, BaselineScope.Web);
+    }
+
+    public void SavePreviousRfcs(IEnumerable<Rfc> rfcs, BaselineScope scope)
+    {
+        string baselineFile = GetBaselineFilePath(scope);
         if (!Directory.Exists(PreviousRfcsFilePath))
         {
             Directory.CreateDirectory(PreviousRfcsFilePath);
         }
-        if (!File.Exists(PreviousRfcsFile))
+        if (!File.Exists(baselineFile))
         {
-            using FileStream tmp = File.Create(PreviousRfcsFile);
+            using FileStream tmp = File.Create(baselineFile);
             tmp.Close();
         }
-        using FileStream previousRfcsFileStream = File.Open(PreviousRfcsFile, FileMode.Truncate);
+        using FileStream previousRfcsFileStream = File.Open(baselineFile, FileMode.Truncate);
         using (StreamWriter previousRfcs = new(previousRfcsFileStream))
         {
             foreach (Rfc rfc in rfcs)

@@ -39,6 +39,11 @@ public interface IRfcService
     /// Categorizes RFCs into ministry, general, and other lists based on the supplied keywords.
     /// </summary>
     public void CategorizeRfcs(IEnumerable<Rfc> rfcs, List<string> ministryKeywords, List<string> generalKeywords, List<string> ignoreKeywords, out List<Rfc> ministryRfcs, out List<Rfc> generalRfcs, out List<Rfc> otherRfcs);
+
+    /// <summary>
+    /// Returns RFCs that match any include keyword while excluding ignore keyword matches.
+    /// </summary>
+    public List<Rfc> FilterRfcs(IEnumerable<Rfc> rfcs, List<string> includeKeywords, List<string> ignoreKeywords);
 }
 
 /// <summary>
@@ -171,6 +176,36 @@ public class ExcelService(IAppSettingsService appSettingsService) : IRfcService
                 otherRfcs.Add(categorizedRfc);
             }
         }
+    }
+
+    public List<Rfc> FilterRfcs(IEnumerable<Rfc> rfcs, List<string> includeKeywords, List<string> ignoreKeywords)
+    {
+        List<Rfc> filtered = [];
+        foreach (Rfc currentRfc in rfcs)
+        {
+            if (string.IsNullOrWhiteSpace(currentRfc.RfcNumber))
+            {
+                continue;
+            }
+
+            Rfc candidate = currentRfc;
+            if (ignoreKeywords.Any(keyword => RfcKeywordMatches(ref candidate, [keyword])))
+            {
+                continue;
+            }
+
+            if (includeKeywords.Count == 0)
+            {
+                continue;
+            }
+
+            if (includeKeywords.Any(keyword => RfcKeywordMatches(ref candidate, [keyword])))
+            {
+                filtered.Add(currentRfc);
+            }
+        }
+
+        return filtered;
     }
 
     /// <summary>
