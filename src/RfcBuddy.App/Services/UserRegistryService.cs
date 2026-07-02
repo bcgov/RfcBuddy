@@ -140,7 +140,10 @@ public sealed class UserRegistryService : IUserRegistryService
         {
             List<UserRecord> users = LoadStore();
             DateTime cutoff = DateTime.UtcNow.Subtract(threshold);
-            return [.. users.Where(x => GetLastActiveUtc(x.UserId) <= cutoff).Select(x => x.UserId)];
+            return [.. users
+                .Select(x => new { x.UserId, LastActiveUtc = GetLastActiveUtc(x.UserId), x.FirstSeenUtc })
+                .Where(x => (x.LastActiveUtc == DateTime.MinValue ? x.FirstSeenUtc : x.LastActiveUtc) <= cutoff)
+                .Select(x => x.UserId)];
         }
     }
 
