@@ -4,7 +4,7 @@
 
 **Created**: 2026-07-02
 
-**Status**: Draft
+**Status**: Completed
 
 **Input**: User description: "I need to add a REST API to this project, so that downstream systems can submit keywords and get a list of relevant RFCs back as a JSON result. This API should be authenticated via PATs that logged-in users create first. PATs should have a max lifetime of 90 days. There's no need to separate the keywords into ministry/generic, but API consumers should be able to include keywords to ignore, which take precedence over ones to include. Since the PAT can identify a user, the existing change tracking should be part of the API results. Users and administrators need to be able to revoke PATs. The first user to log in after this change will automatically become an admin, and can then designate other users as admins. This will require a list of users - in that list, also display the last time this user was active (based on the existing change tracking mechanism). User directories with no activity for 400 days or longer should be deleted."
 

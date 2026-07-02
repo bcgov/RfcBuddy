@@ -90,6 +90,52 @@ The application automatically refreshes the RFC source and records new/changed R
 
 ---
 
+## RFC Retrieval REST API with Personal Access Tokens & User Administration [Source: specs/002-rest-api-pat-auth]
+
+**Completed**: 2026-07-02
+
+### Core Requirement
+Add a PAT-authenticated RFC search API to the existing MVC app so downstream systems can request relevant RFCs as JSON, while logged-in users manage their tokens and administrators govern access.
+
+### User Stories
+
+#### User Story 1 - Retrieve relevant RFCs via authenticated API (Priority: P1)
+A downstream system submits include and optional ignore keywords to the API using a Personal Access Token. The API returns RFCs matching the include list while honoring ignore precedence and annotating each item with per-user change-tracking state.
+
+#### User Story 2 - Create and manage Personal Access Tokens (Priority: P1)
+A logged-in user creates a PAT with a label and expiry, sees the raw token once, and can later list or revoke it through the self-service token UI.
+
+#### User Story 3 - Administer users and roles (Priority: P2)
+The first user to sign in becomes an administrator, and admins can view the user roster with last-active information, promote other users, and revoke tokens across the system.
+
+#### User Story 4 - Automatically remove inactive user data (Priority: P3)
+A background maintenance task deletes user data and tokens for individuals whose change-tracking activity is older than 400 days.
+
+### Key Functional Requirements
+- **FR-001**: The system exposes a JSON RFC search endpoint protected by Personal Access Tokens.
+- **FR-002**: The API filters against the same schedule/archive universe the web app uses and applies ignore precedence over include matches.
+- **FR-003**: Each successful API call advances a separate API baseline for the PAT owner and annotates RFCs as new/changed/unchanged.
+- **FR-004**: Token creation, listing, and revocation are available via the MVC UI; tokens are stored only as non-reversible hashes.
+- **FR-005**: The first login becomes the first administrator, with safeguards against zero-admin states and cleanup of stale user data after 400+ days of inactivity.
+
+### Success Criteria
+- Downstream integrations can authenticate with a PAT and receive a stable JSON response containing matching RFCs.
+- Users can safely create, inspect, and revoke their own tokens without exposing the secret again.
+- Administrators can manage users and tokens while the cleanup worker removes stale accounts automatically.
+
+### Key Entities
+- **ApiToken**: Label, owner, expiry, last-used time, revocation status, and non-reversible hash storage.
+- **UserRecord**: User identity, email, admin flag, and first-seen time.
+- **RfcChangeStatus**: Change annotation for API responses (`New`, `Changed`, `Unchanged`).
+
+### Edge Cases
+- Ignore-only requests return no matches.
+- Expired, revoked, or malformed tokens are rejected with authentication errors.
+- The last remaining administrator cannot be demoted, and cleanup removes directories only when the inactivity threshold is reached.
+
+### Revision Note
+- 2026-07-02 — Archived from the completed feature implementation and verification run into project memory.
+
 ## Revision History
 
 | Feature | Date | Status | Summary |

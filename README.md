@@ -1,4 +1,4 @@
-[![Lifecycle:Maturing](https://img.shields.io/badge/Lifecycle-Maturing-007EC6)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md) The codebase is being roughed out, but finer details are likely to change.
+[![Lifecycle:Stable](https://img.shields.io/badge/Lifecycle-Stable-97ca00)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md) The codebase is being roughed out, but finer details are likely to change.
 
 # RfcBuddy
 The RFC Buddy takes the 365-day change schedule published daily by the OCIO and applies filters and highlights based on keywords. The current schedule is downloaded automatically. It then provides a Word document that's pre-formatted for easy reference during CAB meetings.
