@@ -18,8 +18,6 @@ public sealed class UserMaintenanceService(
             var appSettingsService = scope.ServiceProvider.GetRequiredService<IAppSettingsService>();
             var tokenService = scope.ServiceProvider.GetRequiredService<IApiTokenService>();
             var registryService = scope.ServiceProvider.GetRequiredService<IUserRegistryService>();
-            var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
-
             string dataFolder = appSettingsService.AppSettings.DataFolder;
             foreach (string userId in registryService.GetInactiveUserIds(TimeSpan.FromDays(400)))
             {
