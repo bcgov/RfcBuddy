@@ -101,12 +101,7 @@ public sealed class RfcArchiveService : IRfcArchiveService
                         writer.Write(json);
                     }
 
-                    if (File.Exists(_archiveFilePath))
-                    {
-                        File.Delete(_archiveFilePath);
-                    }
-
-                    File.Move(tempFilePath, _archiveFilePath);
+                    File.Move(tempFilePath, _archiveFilePath, overwrite: true);
                     return;
                 }
                 catch (IOException ex) when (attempt < maxAttempts)

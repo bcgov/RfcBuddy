@@ -77,7 +77,7 @@ public sealed class ApiTokenService : IApiTokenService
             {
                 Id = Guid.NewGuid().ToString("N"),
                 OwnerUserId = userId,
-                Label = label.Trim(),
+                Label = new string(label.Trim().Where(c => !char.IsControl(c)).Take(100).ToArray()),
                 CreatedUtc = nowUtc,
                 ExpiresUtc = effectiveExpiryUtc,
                 Hash = tokenHash

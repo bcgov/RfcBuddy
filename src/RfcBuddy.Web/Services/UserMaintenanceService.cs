@@ -18,20 +18,25 @@ public sealed class UserMaintenanceService(
             var appSettingsService = scope.ServiceProvider.GetRequiredService<IAppSettingsService>();
             var tokenService = scope.ServiceProvider.GetRequiredService<IApiTokenService>();
             var registryService = scope.ServiceProvider.GetRequiredService<IUserRegistryService>();
-            var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
-
             string dataFolder = appSettingsService.AppSettings.DataFolder;
             foreach (string userId in registryService.GetInactiveUserIds(TimeSpan.FromDays(400)))
             {
-                string userFolder = Path.Combine(dataFolder, userId);
-                if (Directory.Exists(userFolder))
+                try
                 {
-                    Directory.Delete(userFolder, recursive: true);
-                }
+                    string userFolder = Path.Combine(dataFolder, userId);
+                    if (Directory.Exists(userFolder))
+                    {
+                        Directory.Delete(userFolder, recursive: true);
+                    }
 
-                tokenService.PurgeTokensForUser(userId);
-                registryService.RemoveUser(userId);
-                _logger.LogInformation("Removed inactive user data for {UserId}", userId);
+                    tokenService.PurgeTokensForUser(userId);
+                    registryService.RemoveUser(userId);
+                    _logger.LogInformation("Removed inactive user data for {UserId}", userId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to remove inactive user data for {UserId}", userId);
+                }
             }
         }
     }
