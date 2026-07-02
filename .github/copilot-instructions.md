@@ -4,6 +4,16 @@ Supplements project constitution at `.github/memory/constitution.md`. Constituti
 
 ---
 
+## SpecKit Instructions
+
+When using SpecKit agents to generate or edit files, follow these instructions:
+- Do not display generated file contents.
+- Do not quote existing files.
+- Provide only:
+  - file name
+  - status
+  - concise summary
+
 ## Active Technologies
 
 | Layer | Technology | Version |
@@ -98,5 +108,5 @@ docker run -p 8080:8080 rfcbuddy
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/001-recent-completed-rfcs/plan.md`.
+`specs/002-rest-api-pat-auth/plan.md`.
 <!-- SPECKIT END -->
