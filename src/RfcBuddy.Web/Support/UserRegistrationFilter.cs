@@ -11,20 +11,17 @@ public sealed class UserRegistrationFilter(IUserRegistryService userRegistryServ
     {
         if (context.HttpContext.User.Identity?.IsAuthenticated == true)
         {
-            string? userId = context.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
-                ?? context.HttpContext.User.Identity.Name;
-            if (!string.IsNullOrWhiteSpace(userId))
-            {
-                string identity = context.HttpContext.User.FindFirst("name")?.Value
-                    ?? context.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
-                    ?? context.HttpContext.User.Identity.Name
-                    ?? userId;
-                string email = context.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
-                    ?? context.HttpContext.User.FindFirst("email")?.Value
-                    ?? string.Empty;
+            string userName = context.HttpContext.User.Identity.Name ?? "Generic User";
+            string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(userName);
 
-                _userRegistryService.EnsureRegistered(userId, identity, email);
-            }
+            string identity = context.HttpContext.User.FindFirst("name")?.Value
+                ?? context.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
+                ?? userName;
+            string email = context.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                ?? context.HttpContext.User.FindFirst("email")?.Value
+                ?? string.Empty;
+
+            _userRegistryService.EnsureRegistered(userId, identity, email);
         }
 
         await next().ConfigureAwait(false);

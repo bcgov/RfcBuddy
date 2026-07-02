@@ -12,7 +12,7 @@ public class ApiTokensController(IApiTokenService apiTokenService) : Controller
     [HttpGet]
     public IActionResult Index()
     {
-        string userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.Identity?.Name ?? "unknown";
+        string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(User.Identity?.Name ?? "Generic User");
         var tokens = _apiTokenService.GetTokensForUser(userId);
         return View(tokens);
     }
@@ -27,7 +27,7 @@ public class ApiTokensController(IApiTokenService apiTokenService) : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Create(string label, DateTime expiry)
     {
-        string userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.Identity?.Name ?? "unknown";
+        string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(User.Identity?.Name ?? "Generic User");
         if (string.IsNullOrWhiteSpace(label))
         {
             ModelState.AddModelError("label", "Label is required.");
@@ -49,7 +49,7 @@ public class ApiTokensController(IApiTokenService apiTokenService) : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Revoke(string tokenId)
     {
-        string userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.Identity?.Name ?? "unknown";
+        string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(User.Identity?.Name ?? "Generic User");
         _ = _apiTokenService.RevokeToken(tokenId, userId);
         return RedirectToAction(nameof(Index));
     }

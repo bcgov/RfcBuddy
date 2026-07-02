@@ -28,7 +28,7 @@ public class AdminController(IApiTokenService apiTokenService, IUserRegistryServ
     [ValidateAntiForgeryToken]
     public IActionResult SetAdmin(string userId, bool isAdmin)
     {
-        string adminUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.Identity?.Name ?? "unknown";
+        string adminUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(User.Identity?.Name ?? "Generic User");
         _ = _userRegistryService.SetAdmin(userId, isAdmin, adminUserId);
         return RedirectToAction(nameof(Index));
     }

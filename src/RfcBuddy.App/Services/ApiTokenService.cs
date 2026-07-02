@@ -31,8 +31,8 @@ public sealed class AuthenticatedToken
 
 public sealed class ApiTokenService : IApiTokenService
 {
-    private static readonly ConcurrentDictionary<string, object> LockRegistry = new(StringComparer.OrdinalIgnoreCase);
-    private readonly object _syncRoot;
+    private static readonly ConcurrentDictionary<string, System.Threading.Mutex> lockRegistry = new(StringComparer.OrdinalIgnoreCase);
+    private readonly System.Threading.Mutex _writeMutex;
     private readonly string _dataFolder;
     private readonly string _storePath;
     private readonly ILogger<ApiTokenService> _logger;
@@ -42,7 +42,7 @@ public sealed class ApiTokenService : IApiTokenService
         _dataFolder = Path.GetFullPath(dataFolder);
         _storePath = Path.Combine(_dataFolder, "apitokens.json");
         _logger = logger;
-        _syncRoot = LockRegistry.GetOrAdd(_storePath, static _ => new object());
+        _writeMutex = lockRegistry.GetOrAdd(_storePath, static path => new System.Threading.Mutex(false, "Global\\RfcBuddyTokens_" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(path)))));
         Directory.CreateDirectory(_dataFolder);
     }
 
@@ -69,7 +69,8 @@ public sealed class ApiTokenService : IApiTokenService
         string rawToken = Guid.NewGuid().ToString("N") + ":" + Guid.NewGuid().ToString("N");
         string tokenHash = Cryptography.GetSha256Hash(rawToken);
 
-        lock (_syncRoot)
+        _writeMutex.WaitOne();
+        try
         {
             List<ApiToken> tokens = LoadStore();
             var token = new ApiToken
@@ -85,21 +86,35 @@ public sealed class ApiTokenService : IApiTokenService
             SaveStore(tokens);
             return new TokenCreationResult { Token = token, RawToken = rawToken };
         }
+        finally
+        {
+            _writeMutex.ReleaseMutex();
+        }
     }
 
     public IReadOnlyList<ApiToken> GetTokensForUser(string userId)
     {
-        lock (_syncRoot)
+        _writeMutex.WaitOne();
+        try
         {
             return [.. LoadStore().Where(x => string.Equals(x.OwnerUserId, userId, StringComparison.OrdinalIgnoreCase))];
+        }
+        finally
+        {
+            _writeMutex.ReleaseMutex();
         }
     }
 
     public IReadOnlyList<ApiToken> GetAllTokens()
     {
-        lock (_syncRoot)
+        _writeMutex.WaitOne();
+        try
         {
             return [.. LoadStore()];
+        }
+        finally
+        {
+            _writeMutex.ReleaseMutex();
         }
     }
 
@@ -111,7 +126,8 @@ public sealed class ApiTokenService : IApiTokenService
         }
 
         string tokenHash = Cryptography.GetSha256Hash(rawToken);
-        lock (_syncRoot)
+        _writeMutex.WaitOne();
+        try
         {
             List<ApiToken> tokens = LoadStore();
             ApiToken? token = tokens.FirstOrDefault(x => string.Equals(x.Hash, tokenHash, StringComparison.OrdinalIgnoreCase));
@@ -124,11 +140,16 @@ public sealed class ApiTokenService : IApiTokenService
             SaveStore(tokens);
             return new AuthenticatedToken { OwnerUserId = token.OwnerUserId, TokenId = token.Id };
         }
+        finally
+        {
+            _writeMutex.ReleaseMutex();
+        }
     }
 
     public bool RevokeToken(string tokenId, string requestingUserId)
     {
-        lock (_syncRoot)
+        _writeMutex.WaitOne();
+        try
         {
             List<ApiToken> tokens = LoadStore();
             ApiToken? token = tokens.FirstOrDefault(x => string.Equals(x.Id, tokenId, StringComparison.OrdinalIgnoreCase));
@@ -141,11 +162,16 @@ public sealed class ApiTokenService : IApiTokenService
             SaveStore(tokens);
             return true;
         }
+        finally
+        {
+            _writeMutex.ReleaseMutex();
+        }
     }
 
     public bool RevokeTokenAsAdmin(string tokenId)
     {
-        lock (_syncRoot)
+        _writeMutex.WaitOne();
+        try
         {
             List<ApiToken> tokens = LoadStore();
             ApiToken? token = tokens.FirstOrDefault(x => string.Equals(x.Id, tokenId, StringComparison.OrdinalIgnoreCase));
@@ -158,15 +184,24 @@ public sealed class ApiTokenService : IApiTokenService
             SaveStore(tokens);
             return true;
         }
+        finally
+        {
+            _writeMutex.ReleaseMutex();
+        }
     }
 
     public void PurgeTokensForUser(string userId)
     {
-        lock (_syncRoot)
+        _writeMutex.WaitOne();
+        try
         {
             List<ApiToken> tokens = LoadStore();
             List<ApiToken> remaining = tokens.Where(x => !string.Equals(x.OwnerUserId, userId, StringComparison.OrdinalIgnoreCase)).ToList();
             SaveStore(remaining);
+        }
+        finally
+        {
+            _writeMutex.ReleaseMutex();
         }
     }
 

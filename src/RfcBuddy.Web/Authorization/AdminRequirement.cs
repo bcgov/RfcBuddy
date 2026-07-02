@@ -11,10 +11,14 @@ public sealed class AdminAuthorizationHandler(IUserRegistryService userRegistryS
 
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, AdminRequirement requirement)
     {
-        string? userId = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!string.IsNullOrWhiteSpace(userId) && _userRegistryService.IsAdmin(userId))
+        if (context.User.Identity?.IsAuthenticated == true)
         {
-            context.Succeed(requirement);
+            string userName = context.User.Identity.Name ?? "Generic User";
+            string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(userName);
+            if (_userRegistryService.IsAdmin(userId))
+            {
+                context.Succeed(requirement);
+            }
         }
 
         return Task.CompletedTask;

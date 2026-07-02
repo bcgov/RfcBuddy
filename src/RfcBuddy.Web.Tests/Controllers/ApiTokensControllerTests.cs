@@ -25,11 +25,12 @@ public class ApiTokensControllerTests
     public void IndexReturnsViewWithTokens()
     {
         var mockService = new Mock<IApiTokenService>();
+        var hashedUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash("test-user");
         var tokens = new List<ApiToken>
         {
-            new() { Label = "Token 1", OwnerUserId = "test-user" }
+            new() { Label = "Token 1", OwnerUserId = hashedUserId }
         };
-        mockService.Setup(x => x.GetTokensForUser("test-user")).Returns(tokens);
+        mockService.Setup(x => x.GetTokensForUser(hashedUserId)).Returns(tokens);
 
         var controller = new ApiTokensController(mockService.Object)
         {
@@ -60,10 +61,11 @@ public class ApiTokensControllerTests
     public void CreatePostCreatesTokenAndRedirects()
     {
         var mockService = new Mock<IApiTokenService>();
-        var token = new ApiToken { Id = "123", Label = "New Token", OwnerUserId = "test-user" };
+        var hashedUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash("test-user");
+        var token = new ApiToken { Id = "123", Label = "New Token", OwnerUserId = hashedUserId };
         var creationResult = new TokenCreationResult { Token = token, RawToken = "raw-secret-value" };
 
-        mockService.Setup(x => x.CreateToken("test-user", "New Token", It.IsAny<DateTime>()))
+        mockService.Setup(x => x.CreateToken(hashedUserId, "New Token", It.IsAny<DateTime>()))
             .Returns(creationResult);
 
         var httpContext = new DefaultHttpContext { User = CreateUserPrincipal("test-user") };
@@ -90,7 +92,8 @@ public class ApiTokensControllerTests
     public void RevokePostRevokesTokenAndRedirects()
     {
         var mockService = new Mock<IApiTokenService>();
-        mockService.Setup(x => x.RevokeToken("token-id", "test-user")).Returns(true);
+        var hashedUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash("test-user");
+        mockService.Setup(x => x.RevokeToken("token-id", hashedUserId)).Returns(true);
 
         var controller = new ApiTokensController(mockService.Object)
         {
@@ -104,6 +107,6 @@ public class ApiTokensControllerTests
 
         Assert.IsNotNull(result);
         Assert.AreEqual("Index", result!.ActionName);
-        mockService.Verify(x => x.RevokeToken("token-id", "test-user"), Times.Once);
+        mockService.Verify(x => x.RevokeToken("token-id", hashedUserId), Times.Once);
     }
 }

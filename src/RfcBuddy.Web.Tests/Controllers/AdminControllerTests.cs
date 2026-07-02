@@ -55,8 +55,9 @@ public class AdminControllerTests
     {
         var mockTokenService = new Mock<IApiTokenService>();
         var mockRegistryService = new Mock<IUserRegistryService>();
+        var hashedAdminUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash("admin-user");
 
-        mockRegistryService.Setup(x => x.SetAdmin("user-2", true, "admin-user")).Returns(true);
+        mockRegistryService.Setup(x => x.SetAdmin("user-2", true, hashedAdminUserId)).Returns(true);
 
         var controller = new AdminController(mockTokenService.Object, mockRegistryService.Object)
         {
@@ -70,7 +71,7 @@ public class AdminControllerTests
 
         Assert.IsNotNull(result);
         Assert.AreEqual("Index", result!.ActionName);
-        mockRegistryService.Verify(x => x.SetAdmin("user-2", true, "admin-user"), Times.Once);
+        mockRegistryService.Verify(x => x.SetAdmin("user-2", true, hashedAdminUserId), Times.Once);
     }
 
     [TestMethod]
