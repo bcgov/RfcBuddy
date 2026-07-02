@@ -98,6 +98,62 @@ The feature introduces local server-side RFC history tracking via a shared JSON 
 
 ---
 
+## RFC Retrieval REST API with Personal Access Tokens & User Administration [Source: specs/002-rest-api-pat-auth]
+
+**Merged**: 2026-07-02
+
+### Architecture Summary
+The feature adds a PAT-authenticated JSON search endpoint, self-service token management, admin governance, and a background cleanup worker. It stays within the existing ASP.NET Core MVC solution and reuses the file-based storage model already used by RFC processing and archive capture.
+
+### Storage & Persistence
+- **Token Store**: `apitokens.json` persists hashed PATs, labels, owner identity, expiry, last-used time, and revocation state under the shared `DataFolder`.
+- **User Registry**: `users.json` stores user identity, email, and admin status with a shared mutex to prevent race conditions on first-admin bootstrap and promotion changes.
+- **Baselines**: Each user keeps a separate `ApiPreviousRFCs.txt` baseline for API change tracking alongside the existing web baseline.
+- **Concurrency**: Named mutexes protect token and registry writes so the solution remains safe on multi-replica deployments.
+
+### Primary Dependencies
+- **Language/Runtime**: C# 14 / .NET 10
+- **Web Framework**: ASP.NET Core MVC (Razor), custom `ApiToken` bearer authentication, policy-based admin authorization
+- **Serialization**: `System.Text.Json` (in-framework)
+- **Hosted Services**: `Microsoft.Extensions.Hosting.BackgroundService` (in-framework)
+- **Testing**: MSTest, Moq, coverlet (existing)
+
+### Project Structure Changes
+- **New Domain Objects**: `ApiToken`, `UserRecord`, `RfcChangeStatus`, `BaselineScope`
+- **New Services**: `ApiTokenService`, `UserRegistryService`, `RfcChangeTracker`, `UserMaintenanceService`
+- **New Web Components**: `RfcApiController`, `ApiTokensController`, `AdminController`, `ApiTokenAuthenticationHandler`, `AdminRequirement`, `UserRegistrationFilter`
+- **New UI**: Razor views for token creation/listing and the admin panel, plus supporting view models and DTOs
+
+### Key Design Decisions
+1. **D1. Hash-only PAT storage**: Raw token values are shown once and never persisted; later validation uses a SHA-256 hash lookup.
+2. **D2. Separate API baseline**: Successful API requests advance only the API baseline, leaving the web UI baseline unchanged.
+3. **D3. Ignore precedence**: API filtering excludes RFCs matching any ignore keyword, even if they also match include keywords.
+4. **D4. First-login admin bootstrap**: The first authenticated user becomes an admin, with a mutex-guarded recheck to avoid race conditions.
+5. **D5. Cleanup by activity timestamp**: Inactive user folders are removed based on the change-tracking files' last-write time, and related tokens/registry entries are removed with them.
+
+### Configuration
+- No new external datastore or dependency was introduced; the feature uses the existing `DataFolder` layout and shared file storage.
+- Token lifetimes are capped at 90 days and can be enforced by the UI and service layer.
+
+### Data Flow
+1. A caller authenticates with a PAT and the `ApiToken` handler resolves the owner identity.
+2. The API controller filters candidate RFCs against the schedule/archive universe, applies include/ignore criteria, and annotates each RFC with change status.
+3. Each successful request updates the caller's API baseline and the token's last-used timestamp.
+4. Logged-in users can create tokens, and admins can manage user roles and revoke tokens system-wide.
+5. The maintenance service periodically removes stale user storage based on inactivity age.
+
+### Security & Compliance
+- Raw secrets are never logged or persisted; only hashes are stored.
+- Admin-only endpoints are protected by authorization policy and cross-user token revocation is restricted to administrators.
+- Structured audit logging records administrative actions and revocations with hashed actor identifiers.
+
+### Testing Strategy
+- Unit tests cover token lifecycle rules, admin bootstrap and promotion constraints, API filtering precedence, change-tracking logic, authentication, and cleanup selection.
+- Web-controller tests verify API responses, token UI behavior, and admin policy enforcement.
+
+### Revision Note
+- 2026-07-02 — Archived from the completed feature implementation and verification run into project memory.
+
 ## Revision History
 
 | Feature | Date | Components | Status |

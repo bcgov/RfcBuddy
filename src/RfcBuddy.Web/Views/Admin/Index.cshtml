@@ -1,0 +1,127 @@
+@model RfcBuddy.Web.Models.AdminViewModel
+@{
+    ViewData["Title"] = "Administration";
+    var userMap = Model.Users.ToDictionary(u => u.UserId, u => u.Identity, StringComparer.OrdinalIgnoreCase);
+}
+
+<div>
+    <h2>System Administration</h2>
+    <p>
+        Manage registered user accounts, administrative privileges, and global API personal access tokens.
+    </p>
+
+    <h3 class="mt-4">Users</h3>
+    <table class="table my-3">
+        <thead>
+            <tr>
+                <th>User Identity</th>
+                <th>Email Address</th>
+                <th>User Key / ID</th>
+                <th>Last Active</th>
+                <th>Admin Role</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in Model.Users)
+            {
+                <tr>
+                    <td><strong>@user.Identity</strong></td>
+                    <td>@(string.IsNullOrEmpty(user.Email) ? "-" : user.Email)</td>
+                    <td class="text-monospace small">@user.UserId</td>
+                    <td>@(user.LastActiveUtc == DateTime.MinValue ? "never active" : user.LastActiveUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm"))</td>
+                    <td>
+                        @if (user.IsAdmin)
+                        {
+                            <span class="text-primary"><strong>Yes</strong></span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">No</span>
+                        }
+                    </td>
+                    <td>
+                        <form asp-action="SetAdmin" method="post" style="display:inline">
+                            <input type="hidden" name="userId" value="@user.UserId" />
+                            <input type="hidden" name="isAdmin" value="@(user.IsAdmin ? "false" : "true")" />
+                            @Html.AntiForgeryToken()
+                            
+                            @if (user.IsAdmin)
+                            {
+                                <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Are you sure you want to remove administrator status?');">Remove admin</button>
+                            }
+                            else
+                            {
+                                <button type="submit" class="btn btn-success btn-sm">Make admin</button>
+                            }
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h3 class="mt-5">Global Active Tokens</h3>
+    @if (Model.ActiveTokens == null || !Model.ActiveTokens.Any())
+    {
+        <p class="alert alert-info">
+            No active API access tokens currently exist in the system.
+        </p>
+    }
+    else
+    {
+        <table class="table my-3">
+            <thead>
+                <tr>
+                    <th>Token Owner</th>
+                    <th>Label</th>
+                    <th>Created</th>
+                    <th>Expires</th>
+                    <th>Last Used</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var token in Model.ActiveTokens)
+                {
+                    bool isExpired = !token.Revoked && token.ExpiresUtc <= DateTime.UtcNow;
+                    var ownerName = userMap.TryGetValue(token.OwnerUserId, out var name) ? name : "Unknown (" + token.OwnerUserId + ")";
+                    <tr>
+                        <td><strong>@ownerName</strong></td>
+                        <td>@token.Label</td>
+                        <td>@token.CreatedUtc.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                        <td>@token.ExpiresUtc.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                        <td>@(token.LastUsedUtc?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "never")</td>
+                        <td>
+                            @if (token.Revoked)
+                            {
+                                <span class="text-muted">Revoked</span>
+                            }
+                            else if (isExpired)
+                            {
+                                <span class="text-danger">Expired</span>
+                            }
+                            else
+                            {
+                                <span class="text-success">Active</span>
+                            }
+                        </td>
+                        <td>
+                            @if (!token.Revoked && !isExpired)
+                            {
+                                <form asp-action="RevokeToken" method="post" style="display:inline">
+                                    <input type="hidden" name="tokenId" value="@token.Id" />
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to revoke this user\'s token?');">Revoke</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+

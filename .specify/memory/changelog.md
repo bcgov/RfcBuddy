@@ -44,3 +44,28 @@
 - Defensive limits: 20,000 records, 50MB file size
 - Atomic writes with temp file + replace to prevent corruption
 - Concurrency-safe via Mutex locking
+
+### RFC Retrieval REST API with Personal Access Tokens & User Administration — 2026-07-02
+**Branch**: `002-rest-api-pat-auth`
+**Spec**: [specs/002-rest-api-pat-auth/spec.md](../../specs/002-rest-api-pat-auth/spec.md)
+
+**What was added**:
+- PAT-authenticated RFC search API returning JSON results filtered by include/ignore keywords and change-tracking status
+- Self-service token creation, listing, and revocation UI for signed-in users
+- Administrator governance for users and tokens, including first-login admin bootstrap and last-active display
+- Automatic cleanup of stale user data after 400+ days of inactivity
+
+**New Components**:
+- `ApiTokenService`, `UserRegistryService`, `RfcChangeTracker`, and `UserMaintenanceService`
+- `RfcApiController`, `ApiTokensController`, `AdminController`, `ApiTokenAuthenticationHandler`, and admin authorization support
+- Razor views and supporting DTO/view-models for the API token and admin experiences
+
+**Tasks Completed**: 38 / 38 (100%)
+
+**Security & Compliance**:
+- PATs are stored only as non-reversible hashes and are shown once at creation time
+- Admin-only actions are restrictions enforced by policy-based authorization
+- Sensitive administrative actions are logged with hashed actor references
+
+**Testing**:
+- New unit and web tests cover PAT authentication, API filtering, token lifecycle, admin promotion/revocation, and cleanup behavior

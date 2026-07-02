@@ -100,7 +100,8 @@ public sealed class RfcArchiveService : IRfcArchiveService
                     {
                         writer.Write(json);
                     }
-                    File.Move(tempFilePath, _archiveFilePath, true);
+
+                    File.Move(tempFilePath, _archiveFilePath, overwrite: true);
                     return;
                 }
                 catch (IOException ex) when (attempt < maxAttempts)

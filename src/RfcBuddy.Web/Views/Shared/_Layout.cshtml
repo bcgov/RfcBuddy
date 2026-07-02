@@ -1,4 +1,6 @@
 ﻿@using RfcBuddy.Web.Support
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
 
 <!DOCTYPE html>
 <html lang="en">
@@ -19,6 +21,18 @@
                 <li class="nav-item">
                     <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                 </li>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <li class="nav-item">
+                        <a class="nav-link" asp-area="" asp-controller="ApiTokens" asp-action="Index">API Tokens</a>
+                    </li>
+                    @if ((await AuthorizationService.AuthorizeAsync(User, "Admin")).Succeeded)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Index">Administration</a>
+                        </li>
+                    }
+                }
             </ul>
         </nav>
         <span class="app-version">Version @AppVersion.Current</span>
