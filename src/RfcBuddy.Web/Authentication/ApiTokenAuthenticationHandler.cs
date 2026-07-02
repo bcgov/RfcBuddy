@@ -36,8 +36,10 @@ public sealed class ApiTokenAuthenticationHandler(
         AuthenticatedToken? authenticatedToken = _apiTokenService.Authenticate(rawToken);
         if (authenticatedToken is null)
         {
-            return Task.Delay(100, RequestAborted)
-                .ContinueWith(_ => AuthenticateResult.Fail("Invalid or expired token."), TaskScheduler.Default);
+            return Task.Delay(100, Context.RequestAborted)
+
+                .ContinueWith(_ => AuthenticateResult.Fail("Invalid or expired token."), TaskScheduler.Default);
+
         }
 
         ClaimsIdentity identity = new([new Claim(ClaimTypes.NameIdentifier, authenticatedToken.OwnerUserId), new Claim(ClaimTypes.Name, authenticatedToken.OwnerUserId)], Scheme.Name);
