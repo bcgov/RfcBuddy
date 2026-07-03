@@ -80,6 +80,114 @@
             </tbody>
         </table>
     }
+
+    <div class="card my-5 shadow-sm">
+        <div class="card-header text-white" style="background-color: #0E3468;">
+            <h4 class="mb-0">REST API Integration Guide</h4>
+        </div>
+        <div class="card-body">
+            <p>
+                RfcBuddy provides a programmatic REST API to query and search RFCs from downstream applications or automation scripts.
+                Use any active Personal Access Token (PAT) created above.
+            </p>
+
+            <h5 class="text-primary mt-4">1. Authentication</h5>
+            <p>
+                All API requests must include your token in the standard <code>Authorization</code> header:
+            </p>
+            <pre class="bg-dark text-light p-3 rounded"><code>Authorization: Bearer <span class="text-warning">your_token_value_here</span></code></pre>
+
+            <h5 class="text-primary mt-4">2. Search Endpoint</h5>
+            <table class="table table-bordered">
+                <tbody>
+                    <tr>
+                        <th style="width: 15%;">Method</th>
+                        <td><span class="badge bg-success">POST</span></td>
+                    </tr>
+                    <tr>
+                        <th>Path</th>
+                        <td><code>/api/v1/rfcs/search</code></td>
+                    </tr>
+                    <tr>
+                        <th>Content-Type</th>
+                        <td><code>application/json</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h5 class="text-primary mt-4">3. Request Body (JSON)</h5>
+            <p>At least one inclusion keyword must be supplied in <code>includeKeywords</code> to return results. Exclusion keywords in <code>ignoreKeywords</code> are optional.</p>
+            <pre class="bg-dark text-light p-3 rounded"><code>{
+  "includeKeywords": [ "Keycloak", "OpenShift" ],
+  "ignoreKeywords": [ "Siteminder" ]
+}</code></pre>
+
+            <h5 class="text-primary mt-4">4. Response Fields</h5>
+            <ul>
+                <li><code>generatedAtUtc</code>: Timestamp when response was compiled.</li>
+                <li><code>totalMatched</code>: Number of matches.</li>
+                <li><code>rfcs</code>: Array of matched RFCs:
+                    <ul>
+                        <li><code>rfcNumber</code>: RFC identifier (e.g., "RFC10045").</li>
+                        <li><code>approvalStatus</code>: Status of approval.</li>
+                        <li><code>platform</code>: Associated platform.</li>
+                        <li><code>assetTags</code>: Application/system tags.</li>
+                        <li><code>startDateUtc</code> / <code>endDateUtc</code>: Date range of scheduled change in UTC.</li>
+                        <li><code>description</code>: Summary narrative.</li>
+                        <li><code>riskAssessment</code>: Identified risk level.</li>
+                        <li><code>changeStatus</code>: Calculated change tracking state compared to your baseline (<code>"New"</code>, <code>"Changed"</code>, or <code>"Unchanged"</code>).</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h5 class="text-primary mt-4">5. Integration Examples</h5>
+            
+            <div class="accordion" id="apiExamples">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingCurl">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCurl" aria-expanded="false" aria-controls="collapseCurl">
+                            <strong>cURL (Bash / Linux shell)</strong>
+                        </button>
+                    </h2>
+                    <div id="collapseCurl" class="accordion-collapse collapse" aria-labelledby="headingCurl" data-bs-parent="#apiExamples">
+                        <div class="accordion-body">
+                            <pre class="bg-dark text-light p-3 rounded"><code>curl -X POST https://@Context.Request.Host/api/v1/rfcs/search \
+  -H "Authorization: Bearer YOUR_TOKEN_VALUE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "includeKeywords": ["Keycloak", "OpenShift"],
+    "ignoreKeywords": ["Siteminder"]
+  }'</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingPowerShell">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePowerShell" aria-expanded="false" aria-controls="collapsePowerShell">
+                            <strong>PowerShell (Windows)</strong>
+                        </button>
+                    </h2>
+                    <div id="collapsePowerShell" class="accordion-collapse collapse" aria-labelledby="headingPowerShell" data-bs-parent="#apiExamples">
+                        <div class="accordion-body">
+                            <pre class="bg-dark text-light p-3 rounded"><code>$headers = @@{
+    "Authorization" = "Bearer YOUR_TOKEN_VALUE"
+    "Content-Type" = "application/json"
+}
+$body = @@{
+    includeKeywords = @@("Keycloak", "OpenShift")
+    ignoreKeywords = @@("Siteminder")
+} | ConvertTo-Json
+
+$response = Invoke-RestMethod -Uri "https://@Context.Request.Host/api/v1/rfcs/search" -Method Post -Headers $headers -Body $body
+$response.rfcs | Format-Table -Property rfcNumber, approvalStatus, changeStatus, startDateUtc</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </div>
 
 
