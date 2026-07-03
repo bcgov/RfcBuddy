@@ -26,6 +26,11 @@ public class AppSettingsService : IAppSettingsService
     private const string keyDataFolder = "DataFolder";
 
     /// <summary>
+    /// appSettings.json key for the background archive update interval in days.
+    /// </summary>
+    private const string keyArchiveUpdateIntervalDays = "ArchiveUpdateIntervalDays";
+
+    /// <summary>
     /// appSettings.json section name for the following keys. The whole section should look like this:
     ///   "SourceInfo": {
     ///     "SourceUrl365": "...",
@@ -91,6 +96,11 @@ public class AppSettingsService : IAppSettingsService
         else
         {
             logger.LogError("Refresh interval minutes not set in appSettings.json file or not an integer. This should be in under " + sectionSourceInfo + "/" + keySourceRefreshMinutes + ".");
+        }
+
+        if (int.TryParse(config[keyArchiveUpdateIntervalDays], out var archiveUpdateIntervalDays))
+        {
+            _appSettings.ArchiveUpdateIntervalDays = archiveUpdateIntervalDays;
         }
     }
 

@@ -1,10 +1,16 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.HttpOverrides;
 using RfcBuddy.App.Services;
+using RfcBuddy.Web.Authentication;
+using RfcBuddy.Web.Authorization;
+using RfcBuddy.Web.Services;
+using RfcBuddy.Web.Support;
 using System.Security.Claims;
 using System.Security.Principal;
 
@@ -12,13 +18,21 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<IPrincipal>(provider => provider.GetService<IHttpContextAccessor>()!.HttpContext!.User);
-builder.Services.AddScoped<IAppSettingsService, AppSettingsService>();
+builder.Services.AddSingleton<IAppSettingsService, AppSettingsService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRfcService, ExcelService>();
 builder.Services.AddScoped<IWordService, WordService>();
+builder.Services.AddSingleton<IRfcArchiveService, RfcArchiveService>();
+builder.Services.AddSingleton<IRfcChangeTracker, RfcChangeTracker>();
+builder.Services.AddSingleton<IApiTokenService>(provider => new ApiTokenService(builder.Configuration["DataFolder"] ?? "./data", provider.GetRequiredService<ILogger<ApiTokenService>>()));
+builder.Services.AddSingleton<IUserRegistryService>(provider => new UserRegistryService(builder.Configuration["DataFolder"] ?? "./data", provider.GetRequiredService<ILogger<UserRegistryService>>()));
+builder.Services.AddScoped<UserRegistrationFilter>();
+builder.Services.AddTransient<IAuthorizationHandler, AdminAuthorizationHandler>();
+builder.Services.AddHostedService<ArchiveUpdateService>();
+builder.Services.AddHostedService<UserMaintenanceService>();
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options => options.Filters.AddService<UserRegistrationFilter>());
 builder.Services.AddHealthChecks();
 
 // Persist Data Protection keys to the shared data volume so every replica uses
@@ -51,6 +65,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
 })
+    .AddScheme<AuthenticationSchemeOptions, ApiTokenAuthenticationHandler>("ApiToken", _ => { })
     .AddCookie(cookie =>
     {
         cookie.AccessDeniedPath = "/";
@@ -97,6 +112,11 @@ builder.Services.AddAuthentication(options =>
             ValidateIssuer = true,
         };
     });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Admin", policy => policy.Requirements.Add(new AdminRequirement()));
+});
 
 var app = builder.Build();
 

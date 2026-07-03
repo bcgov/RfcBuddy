@@ -14,7 +14,7 @@ namespace RfcBuddy.Web.Controllers;
 /// <param name="appSettingsService">The service to get the AppSettings object from</param>
 /// <param name="userService">The user service</param>
 [Authorize]
-public class HomeController(ILogger<HomeController> logger, IUserService userService, IRfcService excelService, IWordService wordService) : Controller
+public class HomeController(ILogger<HomeController> logger, IUserService userService, IRfcService excelService, IWordService wordService, IRfcArchiveService archiveService) : Controller
 {
     /// <summary>
     /// Use to log any events
@@ -35,6 +35,11 @@ public class HomeController(ILogger<HomeController> logger, IUserService userSer
     /// Service to turn the RFCs into a Word document
     /// </summary>
     private readonly IWordService _wordService = wordService;
+
+    /// <summary>
+    /// Service that preserves observed RFC history for completed-item sections.
+    /// </summary>
+    private readonly IRfcArchiveService _archiveService = archiveService;
 
     /// <summary>
     /// Gets the homepage
@@ -72,14 +77,19 @@ public class HomeController(ILogger<HomeController> logger, IUserService userSer
                 List<string> ignoreKeywords = [.. model.IgnoreKeywords.Split(',')];
                 _userService.SaveUserKeywords(ministryKeywords, generalKeywords, ignoreKeywords);
                 await _excelService.GetLatestChanges().ConfigureAwait(true);
-                int totalRfcs = _excelService.ProcessRfcs(ministryKeywords, generalKeywords, ignoreKeywords, out List<Rfc> ministryRfcs, out List<Rfc> generalRfcs, out List<Rfc> otherRfcs);
+                List<Rfc> allRfcs = _excelService.GetAllRfcs();
+                _archiveService.UpdateArchive(allRfcs);
+                List<Rfc> completedRfcs = _archiveService.GetCompletedRfcs();
+                _excelService.CategorizeRfcs(allRfcs, ministryKeywords, generalKeywords, ignoreKeywords, out List<Rfc> ministryRfcs, out List<Rfc> generalRfcs, out List<Rfc> otherRfcs);
+                _excelService.CategorizeRfcs(completedRfcs, ministryKeywords, generalKeywords, ignoreKeywords, out List<Rfc> completedMinistryRfcs, out List<Rfc> completedGeneralRfcs, out List<Rfc> completedOtherRfcs);
+                int totalRfcs = allRfcs.Count;
                 _logger.LogInformation("Total RFCs processed: {totalRfcs}", totalRfcs);
                 _logger.LogInformation("Ministry RFCs found: {ministryRfcsCount}", ministryRfcs.Count);
                 _logger.LogInformation("General RFCs found: {generalRfcsCount}", generalRfcs.Count);
                 _logger.LogInformation("Other RFCs found: {otherRfcsCount}", otherRfcs.Count);
                 List<PreviousRfc> previousRfcs = _userService.GetPreviousRfcs();
                 Stream wordFileStream = new MemoryStream();
-                _wordService.CreateWordFile(ref wordFileStream, ministryRfcs, generalRfcs, otherRfcs, previousRfcs);
+                _wordService.CreateWordFile(ref wordFileStream, ministryRfcs, generalRfcs, otherRfcs, previousRfcs, completedMinistryRfcs, completedGeneralRfcs, completedOtherRfcs);
                 _userService.SavePreviousRfcs(ministryRfcs.Union(generalRfcs).Union(otherRfcs));
                 wordFileStream.Position = 0;  //reset filestream for download
                 System.Net.Mime.ContentDisposition contentDisposition = new()
@@ -93,7 +103,12 @@ public class HomeController(ILogger<HomeController> logger, IUserService userSer
             catch (Exception ex)
             {
                 _logger.LogCritical(ex, "Exception: ");
-                ModelState.AddModelError("Exception", "Error while processing the keywords: " + ex.Message);
+                string friendlyMessage = "Error while processing the keywords. Please try again later.";
+                if (ex.Message.Contains("record limit", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("size limit", StringComparison.OrdinalIgnoreCase))
+                {
+                    friendlyMessage = "The RFC archive reached its safety limit and could not be updated. Please contact support.";
+                }
+                ModelState.AddModelError("Exception", friendlyMessage);
             }
             _logger.LogInformation("Processing complete: {currentDateTime}", DateTime.Now.ToString());
         }

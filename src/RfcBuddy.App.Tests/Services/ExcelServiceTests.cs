@@ -3,6 +3,11 @@ using System.Data;
 
 namespace RfcBuddy.App.Services.Tests
 {
+    internal sealed class FakeAppSettingsService : IAppSettingsService
+    {
+        public AppSettings AppSettings { get; } = new();
+    }
+
     [TestClass()]
     public class ExcelServiceTests
     {
@@ -59,6 +64,27 @@ namespace RfcBuddy.App.Services.Tests
             _ = ExcelService.RfcKeywordMatches(ref rfc, keywords);
             Assert.AreEqual(1, rfc.Keywords.Count);
             Assert.AreEqual("Tag2", rfc.Keywords[0]);
+        }
+
+        [TestMethod()]
+        public void CategorizeRfcsSplitsRfcsAccordingToKeywords()
+        {
+            ExcelService excelService = new(new FakeAppSettingsService());
+            List<Rfc> rfcs =
+            [
+                new("1") { AssetTags = "Tag2", Description = "Example", RiskAssessment = "Low" },
+                new("2") { AssetTags = "General item", Description = "Example", RiskAssessment = "Low" },
+                new("3") { AssetTags = "Unrelated", Description = "Example", RiskAssessment = "Low" }
+            ];
+
+            excelService.CategorizeRfcs(rfcs, ["Tag2"], ["General"], ["Ignore"], out List<Rfc> ministryRfcs, out List<Rfc> generalRfcs, out List<Rfc> otherRfcs);
+
+            Assert.AreEqual(1, ministryRfcs.Count);
+            Assert.AreEqual("1", ministryRfcs[0].RfcNumber);
+            Assert.AreEqual(1, generalRfcs.Count);
+            Assert.AreEqual("2", generalRfcs[0].RfcNumber);
+            Assert.AreEqual(1, otherRfcs.Count);
+            Assert.AreEqual("3", otherRfcs[0].RfcNumber);
         }
     }
 }

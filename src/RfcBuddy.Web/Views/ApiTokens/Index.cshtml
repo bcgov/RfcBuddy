@@ -1,0 +1,85 @@
+@model IEnumerable<RfcBuddy.App.Objects.ApiToken>
+@{
+    ViewData["Title"] = "Personal Access Tokens";
+}
+
+<div>
+    <h2>Personal Access Tokens</h2>
+    <p>
+        Personal Access Tokens (PATs) allow downstream systems to query the REST API on your behalf.
+        Each token has an expiry date and can be revoked at any time.
+    </p>
+
+    @if (TempData["CreatedToken"] is string createdToken)
+    {
+        <p class="alert alert-warning">
+            <strong>New Personal Access Token Created:</strong><br />
+            <input type="text" class="form-control font-monospace my-2" readonly value="@createdToken" onclick="this.select();" />
+            <span class="text-danger"><strong>CRITICAL SECURITY WARNING:</strong> Copy this token value now. We store only a non-reversible cryptographic hash. It cannot be recovered or displayed again.</span>
+        </p>
+    }
+
+    <div class="form-group my-3">
+        <a asp-action="Create" class="btn btn-primary">Create token</a>
+    </div>
+
+    @if (Model == null || !Model.Any())
+    {
+        <p class="alert alert-info">
+            You do not have any Personal Access Tokens yet.
+        </p>
+    }
+    else
+    {
+        <table class="table my-4">
+            <thead>
+                <tr>
+                    <th>Label</th>
+                    <th>Created</th>
+                    <th>Expires</th>
+                    <th>Last Used</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var token in Model)
+                {
+                    bool isExpired = !token.Revoked && token.ExpiresUtc <= DateTime.UtcNow;
+                    <tr>
+                        <td><strong>@token.Label</strong></td>
+                        <td>@token.CreatedUtc.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                        <td>@token.ExpiresUtc.ToLocalTime().ToString("yyyy-MM-dd")</td>
+                        <td>@(token.LastUsedUtc?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "never")</td>
+                        <td>
+                            @if (token.Revoked)
+                            {
+                                <span class="text-muted">Revoked</span>
+                            }
+                            else if (isExpired)
+                            {
+                                <span class="text-danger">Expired</span>
+                            }
+                            else
+                            {
+                                <span class="text-success">Active</span>
+                            }
+                        </td>
+                        <td>
+                            @if (!token.Revoked && !isExpired)
+                            {
+                                <form asp-action="Revoke" method="post" style="display:inline">
+                                    <input type="hidden" name="tokenId" value="@token.Id" />
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to revoke this token?');">Revoke</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+

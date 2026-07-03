@@ -1,0 +1,101 @@
+{
+  "schema_version": "1.0",
+  "extensions": {
+    "agent-context": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:9a1dc02d2d0139bb03860392ecacef79183be2c442feda2f9ccaa4e5907b1e47",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "copilot": [
+          "speckit.agent-context.update"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-06-26T23:13:55.584832+00:00"
+    },
+    "git": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:9731aa8143a72fbebfdb440f155038ab42642517c2b2bdbbf67c8fdbe076ed79",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "copilot": [
+          "speckit.git.feature",
+          "speckit.git.validate",
+          "speckit.git.remote",
+          "speckit.git.initialize",
+          "speckit.git.commit"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-06-26T23:19:37.909048+00:00"
+    },
+    "archive": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:ffa3831c0dd8aceeadad88efe4411676142d654dfbc1987e6e030ba6cdceb83e",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "copilot": [
+          "speckit.archive.run"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-06-26T23:23:47.330497+00:00"
+    },
+    "memory-loader": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:d1caef45965accd4316d8aede0a4ac67f910017ea3c501814cfc7e2d8177ab0b",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "copilot": [
+          "speckit.memory-loader.load"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-06-26T23:24:04.893274+00:00"
+    },
+    "security-review": {
+      "version": "1.5.3",
+      "source": "local",
+      "manifest_hash": "sha256:4d22ce856396f7142eff759194678e29e88110742f5006c09bf8fbc73a2099d2",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "copilot": [
+          "speckit.security-review.audit",
+          "speckit.security-review.staged",
+          "speckit.security-review.branch",
+          "speckit.security-review.plan",
+          "speckit.security-review.tasks",
+          "speckit.security-review.followup",
+          "speckit.security-review.apply",
+          "speckit.security-review.export",
+          "speckit.security-review.init"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-06-26T23:24:15.717975+00:00"
+    },
+    "verify": {
+      "version": "1.0.3",
+      "source": "local",
+      "manifest_hash": "sha256:74202b2c3bb17058b10787838cdf30c9ebe11e8793fc1de04bee75d5f111949a",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "copilot": [
+          "speckit.verify.run"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-06-26T23:24:35.601314+00:00"
+    }
+  }
+}

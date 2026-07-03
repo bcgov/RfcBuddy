@@ -47,6 +47,7 @@ jobs:
 
   package:
     name: Package
+    if: github.event_name == 'release' || (github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'))
     runs-on: ubuntu-latest
     needs: build-and-test
     permissions:
@@ -101,5 +102,5 @@ jobs:
           package-name: 'rfcbuddy'
           package-type: 'container'
           min-versions-to-keep: 50
-          ignore-versions: '^(latest|dev|v.*)$'
+          ignore-versions: '^(latest|dev|main)$'
           token: ${{ secrets.GITHUB_TOKEN }}

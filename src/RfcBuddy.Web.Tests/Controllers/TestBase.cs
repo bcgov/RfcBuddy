@@ -43,5 +43,12 @@ public class TestBase
         var mockService = new Mock<IWordService>();
         return mockService.Object;
     }
+
+    protected static IRfcArchiveService MockArchiveService()
+    {
+        var mockService = new Mock<IRfcArchiveService>();
+        mockService.Setup(x => x.GetCompletedRfcs()).Returns([]);
+        return mockService.Object;
+    }
     #endregion
 }
