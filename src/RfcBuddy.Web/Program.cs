@@ -91,8 +91,12 @@ builder.Services.AddAuthentication(options =>
         // Forwarded headers (UseForwardedHeaders) promote proxied requests to https, so the
         // redirect_uri is generated correctly for the PAR back-channel push to Keycloak.
         options.PushedAuthorizationBehavior = PushedAuthorizationBehavior.UseIfAvailable;
-        options.NonceCookie.SameSite = SameSiteMode.Unspecified;
-        options.CorrelationCookie.SameSite = SameSiteMode.Unspecified;
+        options.NonceCookie.SameSite = builder.Environment.IsDevelopment()
+            ? SameSiteMode.Unspecified
+            : SameSiteMode.None;
+        options.CorrelationCookie.SameSite = builder.Environment.IsDevelopment()
+            ? SameSiteMode.Unspecified
+            : SameSiteMode.None;
 
         // Ensure secure cookies for OIDC in production
         options.NonceCookie.SecurePolicy = builder.Environment.IsDevelopment()
