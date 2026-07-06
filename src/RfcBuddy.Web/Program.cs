@@ -77,6 +77,9 @@ builder.Services.AddAuthentication(options =>
             ? CookieSecurePolicy.SameAsRequest
             : CookieSecurePolicy.Always;
         cookie.SlidingExpiration = true;
+        // Use standard chunking cookie manager to split cookies exceeding 4K limits.
+        // This avoids exceeding Load Balancer single-header limits.
+        cookie.CookieManager = new Microsoft.AspNetCore.Authentication.Cookies.ChunkingCookieManager();
     })
     .AddOpenIdConnect(options =>
     {
@@ -91,8 +94,12 @@ builder.Services.AddAuthentication(options =>
         // Forwarded headers (UseForwardedHeaders) promote proxied requests to https, so the
         // redirect_uri is generated correctly for the PAR back-channel push to Keycloak.
         options.PushedAuthorizationBehavior = PushedAuthorizationBehavior.UseIfAvailable;
-        options.NonceCookie.SameSite = SameSiteMode.Unspecified;
-        options.CorrelationCookie.SameSite = SameSiteMode.Unspecified;
+        options.NonceCookie.SameSite = builder.Environment.IsDevelopment()
+            ? SameSiteMode.Unspecified
+            : SameSiteMode.None;
+        options.CorrelationCookie.SameSite = builder.Environment.IsDevelopment()
+            ? SameSiteMode.Unspecified
+            : SameSiteMode.None;
 
         // Ensure secure cookies for OIDC in production
         options.NonceCookie.SecurePolicy = builder.Environment.IsDevelopment()
@@ -102,7 +109,10 @@ builder.Services.AddAuthentication(options =>
             ? CookieSecurePolicy.SameAsRequest
             : CookieSecurePolicy.Always;
 
-        options.SaveTokens = true;
+        // Do not store keycloak OIDC JWT tokens (access, identity, refresh tokens) inside 
+        // the session cookie, as the app is server-side and does not use them for API requests.
+        // This keeps cookie size below 2KB and prevents Load Balancer header size overflows.
+        options.SaveTokens = false;
         options.Scope.Add("openid");
         options.Scope.Add("profile");
         options.TokenValidationParameters = new TokenValidationParameters
