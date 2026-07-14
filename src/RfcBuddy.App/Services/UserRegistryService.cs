@@ -190,7 +190,7 @@ public sealed class UserRegistryService : IUserRegistryService
         }
 
         string sanitizedUserId = Path.GetFileName(userId);
-        if (sanitizedUserId != userId || string.IsNullOrEmpty(sanitizedUserId))
+        if (sanitizedUserId != userId || string.IsNullOrEmpty(sanitizedUserId) || Path.IsPathRooted(sanitizedUserId))
         {
             return DateTime.MinValue;
         }

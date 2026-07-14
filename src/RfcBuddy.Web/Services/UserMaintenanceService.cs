@@ -30,7 +30,8 @@ public sealed class UserMaintenanceService(
                     }
 
                     string baseFolder = Path.GetFullPath(dataFolder);
-                    string userFolder = Path.GetFullPath(Path.Combine(baseFolder, userId));
+                    string safeUserId = userId.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                    string userFolder = Path.GetFullPath(Path.Combine(baseFolder, safeUserId));
                     string normalizedBase = baseFolder.EndsWith(Path.DirectorySeparatorChar) ? baseFolder : baseFolder + Path.DirectorySeparatorChar;
 
                     if (!userFolder.StartsWith(normalizedBase, StringComparison.OrdinalIgnoreCase))
