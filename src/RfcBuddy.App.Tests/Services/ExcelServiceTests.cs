@@ -59,10 +59,10 @@ namespace RfcBuddy.App.Services.Tests
                 Description = "RFC description",
                 RiskAssessment = "No risk to assets",
             };
-            Assert.AreEqual(0, rfc.Keywords.Count);
+            Assert.IsEmpty(rfc.Keywords);
             List<string> keywords = ["Tag2", "Foo"];
             _ = ExcelService.RfcKeywordMatches(ref rfc, keywords);
-            Assert.AreEqual(1, rfc.Keywords.Count);
+            Assert.HasCount(1, rfc.Keywords);
             Assert.AreEqual("Tag2", rfc.Keywords[0]);
         }
 
@@ -79,11 +79,11 @@ namespace RfcBuddy.App.Services.Tests
 
             excelService.CategorizeRfcs(rfcs, ["Tag2"], ["General"], ["Ignore"], out List<Rfc> ministryRfcs, out List<Rfc> generalRfcs, out List<Rfc> otherRfcs);
 
-            Assert.AreEqual(1, ministryRfcs.Count);
+            Assert.HasCount(1, ministryRfcs);
             Assert.AreEqual("1", ministryRfcs[0].RfcNumber);
-            Assert.AreEqual(1, generalRfcs.Count);
+            Assert.HasCount(1, generalRfcs);
             Assert.AreEqual("2", generalRfcs[0].RfcNumber);
-            Assert.AreEqual(1, otherRfcs.Count);
+            Assert.HasCount(1, otherRfcs);
             Assert.AreEqual("3", otherRfcs[0].RfcNumber);
         }
     }

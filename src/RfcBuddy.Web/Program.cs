@@ -123,10 +123,8 @@ builder.Services.AddAuthentication(options =>
         };
     });
 
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("Admin", policy => policy.Requirements.Add(new AdminRequirement()));
-});
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("Admin", policy => policy.Requirements.Add(new AdminRequirement()));
 
 var app = builder.Build();
 
@@ -156,4 +154,4 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.Run();
+await app.RunAsync();

@@ -69,3 +69,20 @@
 
 **Testing**:
 - New unit and web tests cover PAT authentication, API filtering, token lifecycle, admin promotion/revocation, and cleanup behavior
+
+### Pacific Time Timezone Alignment (v1.2.2) — 2026-07-13
+**Branch**: `003-pacific-time`
+**Spec**: [.specify/memory/spec.md](.specify/memory/spec.md)
+
+**What was added**:
+- Unified display of all dates/timestamps across `/Admin` and `/ApiTokens` user interfaces in strictly-formatted Pacific Time (PT, UTC-7).
+- Shifted internal parsing and logic comparators for Active vs In-progress in `WordService` and `RfcArchiveService` to Pacific Time (PT, UTC-7) to preserve proper classification in containerized environments.
+- Updated API response properties from UTC-named formatting to PT-named properties (`generatedAtPt`, `startDatePt`, `endDatePt`) mapped directly to the UTC-7 offset year-round (no daylight savings shifts).
+- Updated local API integration guide, assembly references, and bumped app version to `1.2.2`.
+
+**New Components**:
+- `DateTimeExtensions.ToPt()`: Static DateTime and Nullable DateTime converter utilizing strict year-round UTC-7 timezone adjustments.
+
+**Testing / Verification**:
+- Recompiled and passing 100% of all unit/web-controller/concurrency tests.
+- Re-verified file boundaries, caching, and document rendering pipelines.

@@ -28,7 +28,7 @@ public class UserRegistryServiceTests
 
             // Check GetAllUsers
             var allUsers = registry.GetAllUsers();
-            Assert.AreEqual(2, allUsers.Count);
+            Assert.HasCount(2, allUsers);
 
             // Promote Jane Smith
             Assert.IsTrue(registry.SetAdmin("user-2", true, "user-1"));
@@ -79,7 +79,7 @@ public class UserRegistryServiceTests
             File.SetLastWriteTimeUtc(user2File, DateTime.UtcNow.AddDays(-410));
 
             var inactive = registry.GetInactiveUserIds(TimeSpan.FromDays(400));
-            Assert.AreEqual(1, inactive.Count);
+            Assert.HasCount(1, inactive);
             Assert.AreEqual("user-2", inactive[0]);
         }
         finally

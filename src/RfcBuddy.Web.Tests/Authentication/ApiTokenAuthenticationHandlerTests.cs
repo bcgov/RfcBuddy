@@ -33,7 +33,7 @@ public class ApiTokenAuthenticationHandlerTests
         var handler = new ApiTokenAuthenticationHandler(monitor, loggerFactory, encoder, mockService.Object);
 
         var context = new DefaultHttpContext();
-        context.Request.Headers["Authorization"] = "Bearer valid-token";
+        context.Request.Headers.Authorization = "Bearer valid-token";
 
         var scheme = new AuthenticationScheme("ApiToken", "ApiToken", typeof(ApiTokenAuthenticationHandler));
         await handler.InitializeAsync(scheme, context);
@@ -78,7 +78,7 @@ public class ApiTokenAuthenticationHandlerTests
         var handler = new ApiTokenAuthenticationHandler(monitor, loggerFactory, encoder, mockService.Object);
 
         var context = new DefaultHttpContext();
-        context.Request.Headers["Authorization"] = "Bearer bad-token";
+        context.Request.Headers.Authorization = "Bearer bad-token";
 
         var scheme = new AuthenticationScheme("ApiToken", "ApiToken", typeof(ApiTokenAuthenticationHandler));
         await handler.InitializeAsync(scheme, context);

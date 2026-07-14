@@ -31,6 +31,7 @@ public sealed class AuthenticatedToken
 
 public sealed class ApiTokenService : IApiTokenService
 {
+    private static readonly JsonSerializerOptions jsonOptions = new() { WriteIndented = true };
     private static readonly ConcurrentDictionary<string, System.Threading.Mutex> lockRegistry = new(StringComparer.OrdinalIgnoreCase);
     private readonly System.Threading.Mutex _writeMutex;
     private readonly string _dataFolder;
@@ -77,7 +78,8 @@ public sealed class ApiTokenService : IApiTokenService
             {
                 Id = Guid.NewGuid().ToString("N"),
                 OwnerUserId = userId,
-                Label = new string(label.Trim().Where(c => !char.IsControl(c)).Take(100).ToArray()),
+                Label = new string(label.Trim().Where(c => !char.IsControl(c)).Take(100).ToArray()),
+
                 CreatedUtc = nowUtc,
                 ExpiresUtc = effectiveExpiryUtc,
                 Hash = tokenHash
@@ -217,16 +219,16 @@ public sealed class ApiTokenService : IApiTokenService
             string json = File.ReadAllText(_storePath);
             return JsonSerializer.Deserialize<List<ApiToken>>(json) ?? [];
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            _logger.LogWarning("Token store was corrupted. Resetting it.");
+            _logger.LogWarning(ex, "Token store was corrupted. Resetting it.");
             return [];
         }
     }
 
     private void SaveStore(IEnumerable<ApiToken> tokens)
     {
-        string json = JsonSerializer.Serialize(tokens, new JsonSerializerOptions { WriteIndented = true });
+        string json = JsonSerializer.Serialize(tokens, jsonOptions);
         string tempPath = Path.Combine(_dataFolder, $"apitokens.json.tmp-{Guid.NewGuid():N}");
         File.WriteAllText(tempPath, json);
         File.Move(tempPath, _storePath, true);

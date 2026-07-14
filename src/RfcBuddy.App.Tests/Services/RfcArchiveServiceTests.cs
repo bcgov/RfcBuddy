@@ -6,6 +6,8 @@ namespace RfcBuddy.App.Services.Tests;
 [TestClass]
 public class RfcArchiveServiceTests
 {
+    public TestContext TestContext { get; set; } = null!;
+
     [TestMethod]
     public void UpdateArchiveKeepsLatestVersionPerRfcAndPrunesOldEntries()
     {
@@ -25,7 +27,7 @@ public class RfcArchiveServiceTests
             ]);
 
             var completed = service.GetCompletedRfcs();
-            Assert.AreEqual(1, completed.Count);
+            Assert.HasCount(1, completed);
             Assert.AreEqual("RFC-1", completed[0].RfcNumber);
             Assert.AreEqual(now.AddDays(-5).Date, completed[0].EndDate.Date);
 
@@ -56,26 +58,27 @@ public class RfcArchiveServiceTests
                 }
 
                 startGate.Reset();
+                CancellationToken token = TestContext.CancellationToken;
 
                 Task[] tasks =
                 [
                     Task.Run(() =>
                     {
-                        startGate.Wait();
+                        startGate.Wait(token);
                         service.UpdateArchive([new Rfc("RFC-1") { EndDate = DateTime.Today.AddDays(-5) }]);
-                    }),
+                    }, token),
                     Task.Run(() =>
                     {
-                        startGate.Wait();
+                        startGate.Wait(token);
                         service.UpdateArchive([new Rfc("RFC-1") { EndDate = DateTime.Today.AddDays(-3) }]);
-                    })
+                    }, token)
                 ];
 
                 startGate.Set();
-                Task.WaitAll(tasks);
+                Task.WaitAll(tasks, token);
 
                 List<Rfc> completed = service.GetCompletedRfcs();
-                Assert.AreEqual(1, completed.Count, $"Iteration {iteration} should preserve a single RFC entry.");
+                Assert.HasCount(1, completed);
                 Assert.AreEqual("RFC-1", completed[0].RfcNumber, $"Iteration {iteration} should keep RFC-1.");
                 Assert.AreEqual(DateTime.Today.AddDays(-3).Date, completed[0].EndDate.Date, $"Iteration {iteration} should retain the latest end date.");
             }

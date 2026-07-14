@@ -27,6 +27,11 @@ public class ApiTokensController(IApiTokenService apiTokenService) : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Create(string label, DateTime expiry)
     {
+        if (!ModelState.IsValid)
+        {
+            return View();
+        }
+
         string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(User.Identity?.Name ?? "Generic User");
         if (string.IsNullOrWhiteSpace(label))
         {
@@ -49,6 +54,11 @@ public class ApiTokensController(IApiTokenService apiTokenService) : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Revoke(string tokenId)
     {
+        if (!ModelState.IsValid)
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
         string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(User.Identity?.Name ?? "Generic User");
         _ = _apiTokenService.RevokeToken(tokenId, userId);
         return RedirectToAction(nameof(Index));

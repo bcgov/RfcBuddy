@@ -12,14 +12,14 @@ public sealed class ArchiveUpdateService(IServiceScopeFactory scopeFactory, ILog
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await UpdateOnce(stoppingToken).ConfigureAwait(false);
+        await UpdateOnce().ConfigureAwait(false);
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 await Task.Delay(TimeSpan.FromDays(Math.Max(1, _appSettingsService.AppSettings.ArchiveUpdateIntervalDays)), stoppingToken).ConfigureAwait(false);
-                await UpdateOnce(stoppingToken).ConfigureAwait(false);
+                await UpdateOnce().ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -32,7 +32,7 @@ public sealed class ArchiveUpdateService(IServiceScopeFactory scopeFactory, ILog
         }
     }
 
-    private async Task UpdateOnce(CancellationToken stoppingToken)
+    private async Task UpdateOnce()
     {
         using var scope = _scopeFactory.CreateScope();
         IRfcService rfcService = scope.ServiceProvider.GetRequiredService<IRfcService>();
@@ -40,6 +40,9 @@ public sealed class ArchiveUpdateService(IServiceScopeFactory scopeFactory, ILog
         await rfcService.GetLatestChanges().ConfigureAwait(false);
         List<Rfc> allRfcs = rfcService.GetAllRfcs();
         archiveService.UpdateArchive(allRfcs.AsEnumerable());
-        _logger.LogInformation("Background archive refresh completed. RfcCount={RfcCount}", allRfcs.Count);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Background archive refresh completed. RfcCount={RfcCount}", allRfcs.Count);
+        }
     }
 }

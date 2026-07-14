@@ -24,13 +24,15 @@ public class WordService : IWordService
     private readonly Color changeHighlight = Color.Blue;
 
     private const string wordDateFormat = "ddd yyyy-MM-dd HH:mm";
+    private const string heading2Style = "Heading2";
+    private const string noRfcsLiteral = "No RFCs found.";
 
     public void CreateWordFile(ref Stream wordFile, List<Rfc> ministryRfcs, List<Rfc> generalRfcs, List<Rfc> otherRfcs, List<PreviousRfc> previousRfcs, List<Rfc> completedMinistryRfcs, List<Rfc> completedGeneralRfcs, List<Rfc> completedOtherRfcs)
     {
         using DocX document = DocX.Create(wordFile);
 
         // Header and legend
-        Paragraph title = document.InsertParagraph("RFCs for " + DateTime.Now.ToShortDateString());
+        Paragraph title = document.InsertParagraph("RFCs for " + DateTime.UtcNow.ToPt().ToShortDateString());
         title.FontSize(24).Bold().UnderlineStyle(UnderlineStyle.singleLine).Color(Color.DarkBlue);
         title.Alignment = Alignment.center;
         document.InsertParagraph();
@@ -69,12 +71,12 @@ public class WordService : IWordService
 
     private void AddRfcSection(DocX document, List<Rfc> rfcs, List<PreviousRfc> previousRfcs, Color keywordHighlight, List<Rfc> completedRfcs)
     {
-        DateTime now = DateTime.Now;
+        DateTime now = DateTime.UtcNow.ToPt();
         List<string> unchangedRfcs = new List<string>();
 
         // Completed (last 5 weeks)
         Paragraph pCompleted = document.InsertParagraph("Completed (last 5 weeks)");
-        pCompleted.StyleId = "Heading2";
+        pCompleted.StyleId = heading2Style;
         int pCompletedCount = 0;
         foreach (Rfc currentRfc in completedRfcs.OrderByDescending(x => x.EndDate).ThenByDescending(x => x.StartDate))
         {
@@ -83,11 +85,11 @@ public class WordService : IWordService
             document.InsertParagraph();
             pCompletedCount++;
         }
-        if (pCompletedCount == 0) document.InsertParagraph("No RFCs found.");
+        if (pCompletedCount == 0) document.InsertParagraph(noRfcsLiteral);
 
         // In Progress
         Paragraph pProgress = document.InsertParagraph("In Progress");
-        pProgress.StyleId = "Heading2";
+        pProgress.StyleId = heading2Style;
         int pProgressCount = 0;
         foreach (Rfc currentRfc in rfcs.Where(x => x.StartDate <= now && x.EndDate >= now))
         {
@@ -96,11 +98,11 @@ public class WordService : IWordService
             document.InsertParagraph();
             pProgressCount++;
         }
-        if (pProgressCount == 0) document.InsertParagraph("No RFCs found.");
+        if (pProgressCount == 0) document.InsertParagraph(noRfcsLiteral);
 
         // New or Changed
         Paragraph pNew = document.InsertParagraph("New or Changed");
-        pNew.StyleId = "Heading2";
+        pNew.StyleId = heading2Style;
         int pNewCount = 0;
         foreach (Rfc currentRfc in rfcs.Where(x => x.StartDate > now || x.EndDate < now))
         {
@@ -122,11 +124,11 @@ public class WordService : IWordService
                 pNewCount++;
             }
         }
-        if (pNewCount == 0) document.InsertParagraph("No RFCs found.");
+        if (pNewCount == 0) document.InsertParagraph(noRfcsLiteral);
 
         // Previously Reviewed
         Paragraph pPrevious = document.InsertParagraph("Previously Reviewed");
-        pPrevious.StyleId = "Heading2";
+        pPrevious.StyleId = heading2Style;
         int pPreviousCount = 0;
         foreach (Rfc currentRfc in rfcs.Where(x => unchangedRfcs.Contains(x.RfcNumber)))
         {
@@ -135,7 +137,7 @@ public class WordService : IWordService
             document.InsertParagraph();
             pPreviousCount++;
         }
-        if (pPreviousCount == 0) document.InsertParagraph("No RFCs found.");
+        if (pPreviousCount == 0) document.InsertParagraph(noRfcsLiteral);
     }
 
     private void AddRfc(DocX document, Rfc rfc, PreviousRfc? previousRfc, Color keywordHighlight)

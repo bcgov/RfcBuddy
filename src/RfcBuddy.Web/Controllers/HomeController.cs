@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RfcBuddy.App.Objects;
 using RfcBuddy.App.Services;
+using RfcBuddy.App.Core;
 using RfcBuddy.Web.Models;
 using System.Diagnostics;
 
@@ -69,7 +70,10 @@ public class HomeController(ILogger<HomeController> logger, IUserService userSer
     {
         if (ModelState.IsValid)
         {
-            _logger.LogInformation("Start processing: {currentDateTime}", DateTime.Now.ToString());
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Start processing: {CurrentDateTime}", DateTime.UtcNow.ToPt());
+            }
             try
             {
                 List<string> ministryKeywords = [.. model.MinistryKeywords.Split(',')];
@@ -83,10 +87,10 @@ public class HomeController(ILogger<HomeController> logger, IUserService userSer
                 _excelService.CategorizeRfcs(allRfcs, ministryKeywords, generalKeywords, ignoreKeywords, out List<Rfc> ministryRfcs, out List<Rfc> generalRfcs, out List<Rfc> otherRfcs);
                 _excelService.CategorizeRfcs(completedRfcs, ministryKeywords, generalKeywords, ignoreKeywords, out List<Rfc> completedMinistryRfcs, out List<Rfc> completedGeneralRfcs, out List<Rfc> completedOtherRfcs);
                 int totalRfcs = allRfcs.Count;
-                _logger.LogInformation("Total RFCs processed: {totalRfcs}", totalRfcs);
-                _logger.LogInformation("Ministry RFCs found: {ministryRfcsCount}", ministryRfcs.Count);
-                _logger.LogInformation("General RFCs found: {generalRfcsCount}", generalRfcs.Count);
-                _logger.LogInformation("Other RFCs found: {otherRfcsCount}", otherRfcs.Count);
+                if (_logger.IsEnabled(LogLevel.Information))
+                {
+                    _logger.LogInformation("Processed {TotalRfcs} total RFCs (Ministry={MinistryRfcsCount}, General={GeneralRfcsCount}, Other={OtherRfcsCount}).", totalRfcs, ministryRfcs.Count, generalRfcs.Count, otherRfcs.Count);
+                }
                 List<PreviousRfc> previousRfcs = _userService.GetPreviousRfcs();
                 Stream wordFileStream = new MemoryStream();
                 _wordService.CreateWordFile(ref wordFileStream, ministryRfcs, generalRfcs, otherRfcs, previousRfcs, completedMinistryRfcs, completedGeneralRfcs, completedOtherRfcs);
@@ -94,7 +98,7 @@ public class HomeController(ILogger<HomeController> logger, IUserService userSer
                 wordFileStream.Position = 0;  //reset filestream for download
                 System.Net.Mime.ContentDisposition contentDisposition = new()
                 {
-                    FileName = "RFC-" + DateTime.Now.ToString("yyyy-MM-dd HHmmss") + ".docx",
+                    FileName = "RFC-" + DateTime.UtcNow.ToPt().ToString("yyyy-MM-dd HHmmss") + ".docx",
                     Inline = true,
                 };
                 Response.Headers.Append("Content-Disposition", contentDisposition.ToString());
@@ -110,7 +114,10 @@ public class HomeController(ILogger<HomeController> logger, IUserService userSer
                 }
                 ModelState.AddModelError("Exception", friendlyMessage);
             }
-            _logger.LogInformation("Processing complete: {currentDateTime}", DateTime.Now.ToString());
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Processing complete: {CurrentDateTime}", DateTime.UtcNow.ToPt());
+            }
         }
         return View(model);
     }

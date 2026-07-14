@@ -136,8 +136,28 @@ A background maintenance task deletes user data and tokens for individuals whose
 ### Revision Note
 - 2026-07-02 — Archived from the completed feature implementation and verification run into project memory.
 
+---
+
+## Pacific Time Timezone Alignment (v1.2.2) [Source: specs/003-pacific-time]
+
+**Completed**: 2026-07-13
+
+### Core Requirement
+Expose all user-visible and API-returned dates/timestamps in strictly-offset Pacific Time (PT, UTC-7) year-round with no daylight savings transitions.
+
+### Key Functional Requirements
+- **FR_PT-001**: Display all timestamps in `/Admin` and `/ApiTokens` user interfaces in converted Pacific Time (PT, UTC-7).
+- **FR_PT-002**: Expose Pacific Time (PT, UTC-7) properties `generatedAtPt`, `startDatePt`, and `endDatePt` in the search API endpoint payload.
+- **FR_PT-003**: Resolve docker/container environment local-timezone divergence by forcing `DateTime.UtcNow.ToPt()` comparisons for document-generation queries, scheduling, and active RFC limits comparisons.
+
+### Success Criteria
+- **SC_PT-001**: Dates displayed on the web interface match PT-7-hour offsets instead of raw server-time UTC outputs.
+- **SC_PT-002**: API output properties clearly specify Pacific Time (`Pt`) alignment within their field keys and representations.
+
 ## Revision History
 
 | Feature | Date | Status | Summary |
 |---------|------|--------|---------|
 | Recent Completed RFCs & App Version Display | 2026-06-30 | Completed | Added completed RFC listings (5-week window, deduped), footer version display, and weekly background archive updates. |
+| RFC Retrieval REST API with Personal Access Tokens & User Administration | 2026-07-02 | Completed | Integrated PAT bearer security, API search endpoints, and self-service token controls alongside user/admin promotion and cleanup logic. |
+| Pacific Time Timezone Alignment (v1.2.2) | 2026-07-13 | Completed | Standardized web screens and search API responses to strictly-formatted Pacific Time representation (PT, UTC-7 year-round). |

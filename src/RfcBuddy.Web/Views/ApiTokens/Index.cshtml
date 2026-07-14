@@ -48,9 +48,9 @@
                     bool isExpired = !token.Revoked && token.ExpiresUtc <= DateTime.UtcNow;
                     <tr>
                         <td><strong>@token.Label</strong></td>
-                        <td>@token.CreatedUtc.ToLocalTime().ToString("yyyy-MM-dd")</td>
-                        <td>@token.ExpiresUtc.ToLocalTime().ToString("yyyy-MM-dd")</td>
-                        <td>@(token.LastUsedUtc?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "never")</td>
+                        <td>@token.CreatedUtc.ToPt().ToString("yyyy-MM-dd")</td>
+                        <td>@token.ExpiresUtc.ToPt().ToString("yyyy-MM-dd")</td>
+                        <td>@(token.LastUsedUtc?.ToPt().ToString("yyyy-MM-dd HH:mm") ?? "never")</td>
                         <td>
                             @if (token.Revoked)
                             {
@@ -124,7 +124,7 @@
 
             <h5 class="text-primary mt-4">4. Response Fields</h5>
             <ul>
-                <li><code>generatedAtUtc</code>: Timestamp when response was compiled.</li>
+                <li><code>generatedAtPt</code>: Timestamp when response was compiled (Pacific Time, UTC-7).</li>
                 <li><code>totalMatched</code>: Number of matches.</li>
                 <li><code>rfcs</code>: Array of matched RFCs:
                     <ul>
@@ -132,7 +132,7 @@
                         <li><code>approvalStatus</code>: Status of approval.</li>
                         <li><code>platform</code>: Associated platform.</li>
                         <li><code>assetTags</code>: Application/system tags.</li>
-                        <li><code>startDateUtc</code> / <code>endDateUtc</code>: Date range of scheduled change in UTC.</li>
+                        <li><code>startDatePt</code> / <code>endDatePt</code>: Date range of scheduled change in Pacific Time (PT, UTC-7).</li>
                         <li><code>description</code>: Summary narrative.</li>
                         <li><code>riskAssessment</code>: Identified risk level.</li>
                         <li><code>changeStatus</code>: Calculated change tracking state compared to your baseline (<code>"New"</code>, <code>"Changed"</code>, or <code>"Unchanged"</code>).</li>
@@ -180,7 +180,7 @@ $body = @@{
 } | ConvertTo-Json
 
 $response = Invoke-RestMethod -Uri "https://@Context.Request.Host/api/v1/rfcs/search" -Method Post -Headers $headers -Body $body
-$response.rfcs | Format-Table -Property rfcNumber, approvalStatus, changeStatus, startDateUtc</code></pre>
+$response.rfcs | Format-Table -Property rfcNumber, approvalStatus, changeStatus, startDatePt</code></pre>
                         </div>
                     </div>
                 </div>
