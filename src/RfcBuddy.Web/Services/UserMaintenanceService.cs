@@ -31,6 +31,12 @@ public sealed class UserMaintenanceService(
 
                     string baseFolder = Path.GetFullPath(dataFolder);
                     string safeUserId = userId.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                    if (Path.IsPathRooted(safeUserId))
+                    {
+                        _logger.LogWarning("Skipping cleanup of user data. Sanitized user ID is rooted: {UserId}", userId);
+                        continue;
+                    }
+
                     string userFolder = Path.GetFullPath(Path.Combine(baseFolder, safeUserId));
                     string normalizedBase = baseFolder.EndsWith(Path.DirectorySeparatorChar) ? baseFolder : baseFolder + Path.DirectorySeparatorChar;
 
