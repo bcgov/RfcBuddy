@@ -184,7 +184,18 @@ public sealed class UserRegistryService : IUserRegistryService
 
     private DateTime GetLastActiveUtc(string userId)
     {
-        string userFolder = Path.Combine(_dataFolder, userId);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return DateTime.MinValue;
+        }
+
+        string sanitizedUserId = Path.GetFileName(userId);
+        if (sanitizedUserId != userId || string.IsNullOrEmpty(sanitizedUserId))
+        {
+            return DateTime.MinValue;
+        }
+
+        string userFolder = Path.Combine(_dataFolder, sanitizedUserId);
         string[] filePaths = [Path.Combine(userFolder, "PreviousRFCs.txt"), Path.Combine(userFolder, "ApiPreviousRFCs.txt")];
         return filePaths
             .Where(File.Exists)

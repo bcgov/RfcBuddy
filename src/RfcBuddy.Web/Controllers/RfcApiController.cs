@@ -10,6 +10,7 @@ namespace RfcBuddy.Web.Controllers;
 [ApiController]
 [Route("api/v1/rfcs")]
 [Authorize(AuthenticationSchemes = "ApiToken")]
+[IgnoreAntiforgeryToken]
 public class RfcApiController(
     ILogger<RfcApiController> logger,
     IUserService userService,

@@ -22,38 +22,48 @@ public sealed class UserMaintenanceService(
             foreach (string userId in registryService.GetInactiveUserIds(TimeSpan.FromDays(400)))
             {
                 try
-
                 {
-                    string userFolder = Path.Combine(dataFolder, userId);
-
-                    if (Directory.Exists(userFolder))
-
+                    if (string.IsNullOrEmpty(userId) || Path.IsPathRooted(userId))
                     {
-
-                        Directory.Delete(userFolder, recursive: true);
-
+                        _logger.LogWarning("Skipping cleanup of user data. Invalid or rooted user ID: {UserId}", userId);
+                        continue;
                     }
 
+                    string baseFolder = Path.GetFullPath(dataFolder);
+                    string userFolder = Path.GetFullPath(Path.Combine(baseFolder, userId));
+                    string normalizedBase = baseFolder.EndsWith(Path.DirectorySeparatorChar) ? baseFolder : baseFolder + Path.DirectorySeparatorChar;
+
+                    if (!userFolder.StartsWith(normalizedBase, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogWarning("Skipping cleanup of user data. User folder {UserFolder} is outside data folder {DataFolder}", userFolder, dataFolder);
+                        continue;
+                    }
+
+                    if (Directory.Exists(userFolder))
+                    {
+                        Directory.Delete(userFolder, recursive: true);
+                    }
 
                     tokenService.PurgeTokensForUser(userId);
-
                     registryService.RemoveUser(userId);
 
                     if (_logger.IsEnabled(LogLevel.Information))
                     {
                         _logger.LogInformation("Removed inactive user data for {UserId}", userId);
                     }
-
                 }
-
-                catch (Exception ex)
-
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
-
-                    _logger.LogError(ex, "Failed to remove inactive user data for {UserId}", userId);
-
+                    throw;
                 }
-
+                catch (IOException ex)
+                {
+                    _logger.LogError(ex, "Failed to remove inactive user data for {UserId}", userId);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    _logger.LogError(ex, "Failed to remove inactive user data for {UserId}", userId);
+                }
             }
         }
     }
