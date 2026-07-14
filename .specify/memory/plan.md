@@ -154,8 +154,25 @@ The feature adds a PAT-authenticated JSON search endpoint, self-service token ma
 ### Revision Note
 - 2026-07-02 — Archived from the completed feature implementation and verification run into project memory.
 
+---
+
+## Pacific Time Timezone Alignment (v1.2.2) [Source: specs/003-pacific-time]
+
+**Merged**: 2026-07-13
+
+### Architecture Summary
+The feature aligns all dates/timestamps displayed/returned in the user interface and programmatic REST API to Pacific Time (PT, UTC-7). This is a static, year-round offset matching the British Columbia timezone decision (no PST/PDT transitions). Conversions are performed in the presentation and API data transfer layers to ensure internal persistence remains in UTC.
+
+### Primary Changes
+- **Extensions**: Introduced `DateTimeExtensions.ToPt()` inside Core library to perform clean offset shifts on Datetime variables.
+- **Views**: Replaced all `.ToLocalTime()` view elements (which translated to UTC on containerized servers) with robust `.ToPt()` formatting.
+- **API Models**: Renamed `generatedAtUtc`, `startDateUtc`, and `endDateUtc` fields in the search endpoints to `generatedAtPt`, `startDatePt`, and `endDatePt` to explicitly model the PT-7-hour timezone payload.
+- **Word / Archive Comparisons**: Updated current "now" comparisons in `WordService` and `RfcArchiveService` to target PT year-round to match the Excel-imported schedules.
+
 ## Revision History
 
 | Feature | Date | Components | Status |
 |---------|------|-----------|--------|
 | Recent Completed RFCs & App Version Display | 2026-06-30 | RfcArchiveService, ArchiveUpdateService, AppVersion, ExcelService enhancements, WordService enhancements, HomeController wiring, layout/styles | Completed |
+| RFC Retrieval REST API with Personal Access Tokens & User Administration | 2026-07-02 | ApiTokenService, UserRegistryService, RfcChangeTracker, UserMaintenanceService, RfcApiController, ApiTokensController, AdminController, ApiTokenAuthenticationHandler | Completed |
+| Pacific Time Timezone Alignment (v1.2.2) | 2026-07-13 | DateTimeExtensions, views alignment, API model updates, documentation | Completed |

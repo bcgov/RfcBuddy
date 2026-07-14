@@ -41,7 +41,7 @@ public class UserServiceTests
             userService.SavePreviousRfcs(rfcs);
             var previous = userService.GetPreviousRfcs();
 
-            Assert.AreEqual(1, previous.Count);
+            Assert.HasCount(1, previous);
             Assert.AreEqual("RFC-123", previous[0].RfcNumber);
             Assert.AreEqual(rfcs[0].StartDate, previous[0].StartDate);
             Assert.AreEqual(rfcs[0].EndDate, previous[0].EndDate);
@@ -50,7 +50,7 @@ public class UserServiceTests
             userService.SavePreviousRfcs(rfcs, BaselineScope.Api);
             var apiPrevious = userService.GetPreviousRfcs(BaselineScope.Api);
 
-            Assert.AreEqual(1, apiPrevious.Count);
+            Assert.HasCount(1, apiPrevious);
             Assert.AreEqual("RFC-123", apiPrevious[0].RfcNumber);
         }
         finally

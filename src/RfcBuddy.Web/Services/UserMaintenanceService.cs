@@ -21,22 +21,56 @@ public sealed class UserMaintenanceService(
             string dataFolder = appSettingsService.AppSettings.DataFolder;
             foreach (string userId in registryService.GetInactiveUserIds(TimeSpan.FromDays(400)))
             {
-                try
+                try
                 {
-                    string userFolder = Path.Combine(dataFolder, userId);
-                    if (Directory.Exists(userFolder))
-                    {
-                        Directory.Delete(userFolder, recursive: true);
-                    }
+                    if (string.IsNullOrEmpty(userId) || Path.IsPathRooted(userId))
+                    {
+                        _logger.LogWarning("Skipping cleanup of user data. Invalid or rooted user ID: {UserId}", userId);
+                        continue;
+                    }
 
-                    tokenService.PurgeTokensForUser(userId);
-                    registryService.RemoveUser(userId);
-                    _logger.LogInformation("Removed inactive user data for {UserId}", userId);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to remove inactive user data for {UserId}", userId);
-                }
+                    string baseFolder = Path.GetFullPath(dataFolder);
+                    string safeUserId = userId.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                    if (Path.IsPathRooted(safeUserId))
+                    {
+                        _logger.LogWarning("Skipping cleanup of user data. Sanitized user ID is rooted: {UserId}", userId);
+                        continue;
+                    }
+
+                    string userFolder = Path.GetFullPath(Path.Combine(baseFolder, safeUserId));
+                    string normalizedBase = baseFolder.EndsWith(Path.DirectorySeparatorChar) ? baseFolder : baseFolder + Path.DirectorySeparatorChar;
+
+                    if (!userFolder.StartsWith(normalizedBase, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogWarning("Skipping cleanup of user data. User folder {UserFolder} is outside data folder {DataFolder}", userFolder, dataFolder);
+                        continue;
+                    }
+
+                    if (Directory.Exists(userFolder))
+                    {
+                        Directory.Delete(userFolder, recursive: true);
+                    }
+
+                    tokenService.PurgeTokensForUser(userId);
+                    registryService.RemoveUser(userId);
+
+                    if (_logger.IsEnabled(LogLevel.Information))
+                    {
+                        _logger.LogInformation("Removed inactive user data for {UserId}", userId);
+                    }
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (IOException ex)
+                {
+                    _logger.LogError(ex, "Failed to remove inactive user data for {UserId}", userId);
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    _logger.LogError(ex, "Failed to remove inactive user data for {UserId}", userId);
+                }
             }
         }
     }

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using RfcBuddy.App.Objects;
+using RfcBuddy.App.Core;
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
@@ -26,6 +27,7 @@ public sealed class RfcArchiveService : IRfcArchiveService
     private const long maxFileSizeBytes = 50L * 1024L * 1024L;
     private const int maxAttempts = 3;
 
+    private static readonly JsonSerializerOptions jsonOptions = new() { WriteIndented = true };
     private static readonly ConcurrentDictionary<string, Mutex> lockRegistry = new(StringComparer.OrdinalIgnoreCase);
 
     private readonly ILogger<RfcArchiveService> _logger;
@@ -53,7 +55,7 @@ public sealed class RfcArchiveService : IRfcArchiveService
         try
         {
             List<Rfc> merged = LoadArchiveRecords();
-            DateTime now = DateTime.Now;
+            DateTime now = DateTime.UtcNow.ToPt();
 
             foreach (Rfc observedRfc in observedRfcs)
             {
@@ -83,7 +85,7 @@ public sealed class RfcArchiveService : IRfcArchiveService
                 throw new InvalidOperationException($"The RFC archive record limit of {maxRecords} was exceeded.");
             }
 
-            string json = JsonSerializer.Serialize(merged, new JsonSerializerOptions { WriteIndented = true });
+            string json = JsonSerializer.Serialize(merged, jsonOptions);
             if (Encoding.UTF8.GetByteCount(json) > maxFileSizeBytes)
             {
                 _logger.LogWarning("Archive size limit exceeded. Bytes={Bytes}", Encoding.UTF8.GetByteCount(json));
@@ -101,10 +103,11 @@ public sealed class RfcArchiveService : IRfcArchiveService
                         writer.Write(json);
                     }
 
-                    File.Move(tempFilePath, _archiveFilePath, overwrite: true);
+                    File.Move(tempFilePath, _archiveFilePath, overwrite: true);
+
                     return;
                 }
-                catch (IOException ex) when (attempt < maxAttempts)
+                catch (Exception ex) when ((ex is IOException || ex is UnauthorizedAccessException) && attempt < maxAttempts)
                 {
                     _logger.LogWarning(ex, "Archive write retry. Attempt={Attempt}", attempt);
                     Thread.Sleep(TimeSpan.FromMilliseconds(100 * attempt));
@@ -116,7 +119,7 @@ public sealed class RfcArchiveService : IRfcArchiveService
                     {
                         File.Delete(_archiveFilePath);
                     }
-                    throw;
+                    throw new InvalidOperationException("The RFC archive file structure is corrupted and could not be successfully processed.", ex);
                 }
             }
 
@@ -132,7 +135,7 @@ public sealed class RfcArchiveService : IRfcArchiveService
     public List<Rfc> GetCompletedRfcs()
     {
         List<Rfc> archivedRfcs = LoadArchiveRecords();
-        DateTime now = DateTime.Now;
+        DateTime now = DateTime.UtcNow.ToPt();
         DateTime cutoff = now.AddDays(-retentionDays);
         return [.. archivedRfcs.Where(x => x.EndDate != default && x.EndDate >= cutoff && x.EndDate <= now).OrderByDescending(x => x.EndDate).ThenByDescending(x => x.StartDate)];
     }

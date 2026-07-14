@@ -99,11 +99,6 @@ public class UserService(IAppSettingsService appSettingsService, IPrincipal user
     /// </summary>
     private string PreviousRfcsFilePath => Path.Combine(_appSettings.DataFolder, UserId);
 
-    /// <summary>
-    /// The relative path to the previous RFCs file, including the filename.
-    /// </summary>
-    private string PreviousRfcsFile => Path.Combine(PreviousRfcsFilePath, previousRfcsFileName);
-
     private string GetBaselineFilePath(BaselineScope scope)
     {
         string fileName = scope == BaselineScope.Api ? apiPreviousRfcsFileName : previousRfcsFileName;

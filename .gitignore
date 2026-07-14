@@ -29,6 +29,7 @@ bld/
 
 # Visual Studio directories and files
 .vs/
+.vscode/
 Generated\ Files/
 *.coverage
 *.coveragexml

@@ -26,6 +26,7 @@ public sealed class UserListEntry
 
 public sealed class UserRegistryService : IUserRegistryService
 {
+    private static readonly JsonSerializerOptions jsonOptions = new() { WriteIndented = true };
     private static readonly ConcurrentDictionary<string, System.Threading.Mutex> lockRegistry = new(StringComparer.OrdinalIgnoreCase);
     private readonly System.Threading.Mutex _writeMutex;
     private readonly string _dataFolder;
@@ -183,22 +184,24 @@ public sealed class UserRegistryService : IUserRegistryService
 
     private DateTime GetLastActiveUtc(string userId)
     {
-        string userFolder = Path.Combine(_dataFolder, userId);
-        DateTime latest = DateTime.MinValue;
-        foreach (string filePath in new[] { Path.Combine(userFolder, "PreviousRFCs.txt"), Path.Combine(userFolder, "ApiPreviousRFCs.txt") })
-        {
-            if (File.Exists(filePath))
-            {
-                latest = latest > File.GetLastWriteTimeUtc(filePath) ? latest : File.GetLastWriteTimeUtc(filePath);
-            }
-        }
-
-        if (latest == DateTime.MinValue)
+        if (string.IsNullOrEmpty(userId))
         {
             return DateTime.MinValue;
         }
 
-        return latest;
+        string sanitizedUserId = Path.GetFileName(userId);
+        if (sanitizedUserId != userId || string.IsNullOrEmpty(sanitizedUserId) || Path.IsPathRooted(sanitizedUserId))
+        {
+            return DateTime.MinValue;
+        }
+
+        string userFolder = Path.Combine(_dataFolder, sanitizedUserId);
+        string[] filePaths = [Path.Combine(userFolder, "PreviousRFCs.txt"), Path.Combine(userFolder, "ApiPreviousRFCs.txt")];
+        return filePaths
+            .Where(File.Exists)
+            .Select(File.GetLastWriteTimeUtc)
+            .DefaultIfEmpty(DateTime.MinValue)
+            .Max();
     }
 
     private List<UserRecord> LoadStore()
@@ -213,16 +216,16 @@ public sealed class UserRegistryService : IUserRegistryService
             string json = File.ReadAllText(_storePath);
             return JsonSerializer.Deserialize<List<UserRecord>>(json) ?? [];
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            _logger.LogWarning("User store was corrupted. Resetting it.");
+            _logger.LogWarning(ex, "User store was corrupted. Resetting it.");
             return [];
         }
     }
 
     private void SaveStore(IEnumerable<UserRecord> users)
     {
-        string json = JsonSerializer.Serialize(users, new JsonSerializerOptions { WriteIndented = true });
+        string json = JsonSerializer.Serialize(users, jsonOptions);
         string tempPath = Path.Combine(_dataFolder, $"users.json.tmp-{Guid.NewGuid():N}");
         File.WriteAllText(tempPath, json);
         File.Move(tempPath, _storePath, true);

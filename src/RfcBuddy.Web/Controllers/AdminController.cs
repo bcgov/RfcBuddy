@@ -28,6 +28,11 @@ public class AdminController(IApiTokenService apiTokenService, IUserRegistryServ
     [ValidateAntiForgeryToken]
     public IActionResult SetAdmin(string userId, bool isAdmin)
     {
+        if (!ModelState.IsValid)
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
         string adminUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(User.Identity?.Name ?? "Generic User");
         _ = _userRegistryService.SetAdmin(userId, isAdmin, adminUserId);
         return RedirectToAction(nameof(Index));
@@ -37,6 +42,11 @@ public class AdminController(IApiTokenService apiTokenService, IUserRegistryServ
     [ValidateAntiForgeryToken]
     public IActionResult RevokeToken(string tokenId)
     {
+        if (!ModelState.IsValid)
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
         _ = _apiTokenService.RevokeTokenAsAdmin(tokenId);
         return RedirectToAction(nameof(Index));
     }

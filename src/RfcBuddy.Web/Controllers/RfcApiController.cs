@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RfcBuddy.App.Objects;
 using RfcBuddy.App.Services;
+using RfcBuddy.App.Core;
 using RfcBuddy.Web.Models.Api;
 
 namespace RfcBuddy.Web.Controllers;
@@ -9,6 +10,7 @@ namespace RfcBuddy.Web.Controllers;
 [ApiController]
 [Route("api/v1/rfcs")]
 [Authorize(AuthenticationSchemes = "ApiToken")]
+[IgnoreAntiforgeryToken]
 public class RfcApiController(
     ILogger<RfcApiController> logger,
     IUserService userService,
@@ -54,8 +56,8 @@ public class RfcApiController(
                 ApprovalStatus = rfc.ApprovalStatus,
                 Platform = rfc.Platform,
                 AssetTags = rfc.AssetTags,
-                StartDateUtc = rfc.StartDate.ToUniversalTime(),
-                EndDateUtc = rfc.EndDate.ToUniversalTime(),
+                StartDatePt = rfc.StartDate.ToUniversalTime().ToPt(),
+                EndDatePt = rfc.EndDate.ToUniversalTime().ToPt(),
                 Description = rfc.Description,
                 RiskAssessment = rfc.RiskAssessment,
                 ChangeStatus = _changeTracker.GetStatus(rfc, baseline)

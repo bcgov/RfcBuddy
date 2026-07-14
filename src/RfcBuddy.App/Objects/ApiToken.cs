@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace RfcBuddy.App.Objects;
 
 public class ApiToken

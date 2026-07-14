@@ -15,9 +15,9 @@ public class WordServiceTests
         List<Rfc> generalRfcs = [];
         List<Rfc> otherRfcs = [];
         List<PreviousRfc> previousRfcs = [];
-        Assert.IsTrue(stream.Length == 0);
+        Assert.AreEqual(0, stream.Length);
         wordService.CreateWordFile(ref stream, ministryRfcs, generalRfcs, otherRfcs, previousRfcs, [], [], []);
-        Assert.IsTrue(stream.Length > 0);
+        Assert.AreNotEqual(0, stream.Length);
     }
 
     [TestMethod()]
@@ -40,7 +40,7 @@ public class WordServiceTests
         using DocX document = DocX.Load(stream);
         string paragraphs = string.Join(" ", document.Paragraphs.Select(x => x.Text));
 
-        StringAssert.Contains(paragraphs, "Completed (last 5 weeks)");
-        StringAssert.Contains(paragraphs, "CHG001");
+        Assert.Contains("Completed (last 5 weeks)", paragraphs);
+        Assert.Contains("CHG001", paragraphs);
     }
 }

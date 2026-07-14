@@ -19,7 +19,7 @@ public class ApiTokenServiceTests
 
             Assert.IsFalse(string.IsNullOrWhiteSpace(result.RawToken));
             Assert.AreEqual("CI token", result.Token.Label);
-            Assert.AreEqual(1, service.GetTokensForUser("user-1").Count);
+            Assert.HasCount(1, service.GetTokensForUser("user-1"));
 
             var authenticated = service.Authenticate(result.RawToken);
             Assert.IsNotNull(authenticated);

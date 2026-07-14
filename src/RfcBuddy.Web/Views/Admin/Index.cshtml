@@ -29,7 +29,7 @@
                     <td><strong>@user.Identity</strong></td>
                     <td>@(string.IsNullOrEmpty(user.Email) ? "-" : user.Email)</td>
                     <td class="text-monospace small">@user.UserId</td>
-                    <td>@(user.LastActiveUtc == DateTime.MinValue ? "never active" : user.LastActiveUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm"))</td>
+                    <td>@(user.LastActiveUtc == DateTime.MinValue ? "never active" : user.LastActiveUtc.ToPt().ToString("yyyy-MM-dd HH:mm"))</td>
                     <td>
                         @if (user.IsAdmin)
                         {
@@ -90,9 +90,9 @@
                     <tr>
                         <td><strong>@ownerName</strong></td>
                         <td>@token.Label</td>
-                        <td>@token.CreatedUtc.ToLocalTime().ToString("yyyy-MM-dd")</td>
-                        <td>@token.ExpiresUtc.ToLocalTime().ToString("yyyy-MM-dd")</td>
-                        <td>@(token.LastUsedUtc?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "never")</td>
+                        <td>@token.CreatedUtc.ToPt().ToString("yyyy-MM-dd")</td>
+                        <td>@token.ExpiresUtc.ToPt().ToString("yyyy-MM-dd")</td>
+                        <td>@(token.LastUsedUtc?.ToPt().ToString("yyyy-MM-dd HH:mm") ?? "never")</td>
                         <td>
                             @if (token.Revoked)
                             {
