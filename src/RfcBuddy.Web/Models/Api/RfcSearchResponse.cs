@@ -6,6 +6,8 @@ namespace RfcBuddy.Web.Models.Api;
 
 public class RfcSearchResponse
 {
+    public DateTime GeneratedAtUtc { get; set; } = DateTime.UtcNow;
+
     public DateTime GeneratedAtPt { get; set; } = DateTime.UtcNow.ToPt();
 
     public int TotalMatched { get; set; }
@@ -22,6 +24,10 @@ public class RfcResult
     public string Platform { get; set; } = string.Empty;
 
     public string AssetTags { get; set; } = string.Empty;
+
+    public DateTime StartDateUtc { get; set; }
+
+    public DateTime EndDateUtc { get; set; }
 
     public DateTime StartDatePt { get; set; }
 
