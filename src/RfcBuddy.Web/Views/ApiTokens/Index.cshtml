@@ -124,6 +124,7 @@
 
             <h5 class="text-primary mt-4">4. Response Fields</h5>
             <ul>
+                <li><code>generatedAtUtc</code>: Timestamp when response was compiled (UTC).</li>
                 <li><code>generatedAtPt</code>: Timestamp when response was compiled (Pacific Time, UTC-7).</li>
                 <li><code>totalMatched</code>: Number of matches.</li>
                 <li><code>rfcs</code>: Array of matched RFCs:
@@ -132,6 +133,7 @@
                         <li><code>approvalStatus</code>: Status of approval.</li>
                         <li><code>platform</code>: Associated platform.</li>
                         <li><code>assetTags</code>: Application/system tags.</li>
+                        <li><code>startDateUtc</code> / <code>endDateUtc</code>: Date range of scheduled change (UTC).</li>
                         <li><code>startDatePt</code> / <code>endDatePt</code>: Date range of scheduled change in Pacific Time (PT, UTC-7).</li>
                         <li><code>description</code>: Summary narrative.</li>
                         <li><code>riskAssessment</code>: Identified risk level.</li>

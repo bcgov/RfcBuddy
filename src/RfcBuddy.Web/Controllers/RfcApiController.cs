@@ -56,6 +56,8 @@ public class RfcApiController(
                 ApprovalStatus = rfc.ApprovalStatus,
                 Platform = rfc.Platform,
                 AssetTags = rfc.AssetTags,
+                StartDateUtc = rfc.StartDate.ToUniversalTime(),
+                EndDateUtc = rfc.EndDate.ToUniversalTime(),
                 StartDatePt = rfc.StartDate.ToUniversalTime().ToPt(),
                 EndDatePt = rfc.EndDate.ToUniversalTime().ToPt(),
                 Description = rfc.Description,

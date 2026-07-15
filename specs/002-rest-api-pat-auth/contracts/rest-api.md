@@ -51,6 +51,7 @@ matching an ignore keyword is excluded even if it also matches an include keywor
 ```json
 {
   "generatedAtUtc": "2026-07-02T15:04:05Z",
+  "generatedAtPt": "2026-07-02T08:04:05Z",
   "totalMatched": 2,
   "rfcs": [
     {
@@ -60,6 +61,8 @@ matching an ignore keyword is excluded even if it also matches an include keywor
       "assetTags": "PAYMENTS-API",
       "startDateUtc": "2026-07-05T02:00:00Z",
       "endDateUtc": "2026-07-05T04:00:00Z",
+      "startDatePt": "2026-07-04T19:00:00Z",
+      "endDatePt": "2026-07-04T21:00:00Z",
       "description": "Deploy payments API v2",
       "riskAssessment": "Low",
       "changeStatus": "New"
@@ -71,6 +74,8 @@ matching an ignore keyword is excluded even if it also matches an include keywor
       "assetTags": "IDENTITY-BROKER",
       "startDateUtc": "2026-06-20T01:00:00Z",
       "endDateUtc": "2026-06-20T03:00:00Z",
+      "startDatePt": "2026-06-19T18:00:00Z",
+      "endDatePt": "2026-06-19T20:00:00Z",
       "description": "Patch identity broker",
       "riskAssessment": "Medium",
       "changeStatus": "Changed"
@@ -81,18 +86,22 @@ matching an ignore keyword is excluded even if it also matches an include keywor
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `generatedAtUtc` | string (ISO-8601 UTC) | When the response was produced. |
+| `generatedAtUtc` | string (ISO-8601 UTC) | When the response was produced (UTC). |
+| `generatedAtPt` | string (ISO-8601) | When the response was produced, in Pacific Time (UTC-7 year-round). |
 | `totalMatched` | integer | Count of returned RFCs. |
 | `rfcs` | array | Matching RFCs (may be empty). |
 | `rfcs[].rfcNumber` | string | RFC identifier. |
 | `rfcs[].approvalStatus` | string | Approval status. |
 | `rfcs[].platform` | string | Platform. |
 | `rfcs[].assetTags` | string | Affected asset tags. |
-| `rfcs[].startDateUtc` | string (ISO-8601) | Change window start. |
-| `rfcs[].endDateUtc` | string (ISO-8601) | Change window end. |
+| `rfcs[].startDateUtc` | string (ISO-8601) | Change window start (UTC). |
+| `rfcs[].endDateUtc` | string (ISO-8601) | Change window end (UTC). |
+| `rfcs[].startDatePt` | string (ISO-8601) | Change window start, in Pacific Time (UTC-7 year-round). |
+| `rfcs[].endDatePt` | string (ISO-8601) | Change window end, in Pacific Time (UTC-7 year-round). |
 | `rfcs[].description` | string | Description. |
 | `rfcs[].riskAssessment` | string | Risk assessment. |
 | `rfcs[].changeStatus` | string enum | `New`, `Changed`, or `Unchanged` vs. the caller's API baseline. |
+
 
 **Side effect**: A successful `200` advances the caller's API change-tracking
 baseline (separate from the web UI baseline). Subsequent calls report `New`/`Changed`
