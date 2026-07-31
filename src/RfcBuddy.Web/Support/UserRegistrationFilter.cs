@@ -27,7 +27,7 @@ public sealed class UserRegistrationFilter(IUserRegistryService userRegistryServ
                 ?? context.HttpContext.User.FindFirst("email")?.Value
                 ?? string.Empty;
 
-            _userRegistryService.EnsureRegistered(userId, identity, email);
+            _userRegistryService.EnsureRegistered(userId, identity, email, userUniqueId);
         }
 
         await next().ConfigureAwait(false);

@@ -68,12 +68,12 @@ public class UserService(IAppSettingsService appSettingsService, IPrincipal user
     {
         get
         {
-            string name = _user.Identity?.Name ?? "Generic User";
-            if (name.Length == 64 && name.All(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
-            {
-                return name;
-            }
-            return Cryptography.GetSha256Hash(name);
+            string userUniqueId = (_user as System.Security.Claims.ClaimsPrincipal)?.FindFirst("preferred_username")?.Value
+                ?? (_user as System.Security.Claims.ClaimsPrincipal)?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? (_user as System.Security.Claims.ClaimsPrincipal)?.FindFirst("sub")?.Value
+                ?? _user.Identity?.Name
+                ?? "Generic User";
+            return Cryptography.GetSha256Hash(userUniqueId);
         }
     }
 

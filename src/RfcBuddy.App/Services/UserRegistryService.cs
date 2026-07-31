@@ -7,7 +7,7 @@ namespace RfcBuddy.App.Services;
 
 public interface IUserRegistryService
 {
-    UserRecord EnsureRegistered(string userId, string identity, string email = "");
+    UserRecord EnsureRegistered(string userId, string identity, string email = "", string? legacyIdentity = null);
     bool IsAdmin(string userId);
     IReadOnlyList<UserListEntry> GetAllUsers();
     bool SetAdmin(string targetUserId, bool isAdmin, string requestingAdminUserId);
@@ -45,7 +45,7 @@ public sealed class UserRegistryService : IUserRegistryService
         Directory.CreateDirectory(_dataFolder);
     }
 
-    public UserRecord EnsureRegistered(string userId, string identity, string email = "")
+    public UserRecord EnsureRegistered(string userId, string identity, string email = "", string? legacyIdentity = null)
     {
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -72,8 +72,12 @@ public sealed class UserRegistryService : IUserRegistryService
             // By this date, all users will either have logged in and been migrated, or cleaned up by UserMaintenanceService after 400 days of inactivity.
             // Check for legacy record matching by old display name hash, identity string, or non-empty email
             string legacyDisplayNameHash = RfcBuddy.App.Core.Cryptography.GetSha256Hash(identity);
+            string? legacyUniqueIdHash = string.IsNullOrWhiteSpace(legacyIdentity)
+                ? null
+                : RfcBuddy.App.Core.Cryptography.GetSha256Hash(legacyIdentity);
             UserRecord? legacy = users.FirstOrDefault(x =>
                 string.Equals(x.UserId, legacyDisplayNameHash, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(x.UserId, legacyUniqueIdHash, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(x.Identity, identity, StringComparison.OrdinalIgnoreCase)
                 || (!string.IsNullOrEmpty(email) && string.Equals(x.Email, email, StringComparison.OrdinalIgnoreCase)));
 

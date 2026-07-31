@@ -13,8 +13,12 @@ public sealed class AdminAuthorizationHandler(IUserRegistryService userRegistryS
     {
         if (context.User.Identity?.IsAuthenticated == true)
         {
-            string userName = context.User.Identity.Name ?? "Generic User";
-            string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(userName);
+            string userUniqueId = context.User.FindFirst("preferred_username")?.Value
+                ?? context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? context.User.FindFirst("sub")?.Value
+                ?? context.User.Identity.Name
+                ?? "Generic User";
+            string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(userUniqueId);
             if (_userRegistryService.IsAdmin(userId))
             {
                 context.Succeed(requirement);
