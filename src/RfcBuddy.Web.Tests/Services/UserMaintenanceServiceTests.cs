@@ -29,7 +29,7 @@ public class UserMaintenanceServiceTests
     public void CleanupLogicPerformsCorrectFileSystemAndServiceDeletions()
     {
         // We can verify that the central services used by the cleaner service function as expected
-        string tempFolder = Path.Combine(Path.GetTempPath(), "rfcbuddy-maintenancetests", Guid.NewGuid().ToString("N"));
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-maintenancetests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempFolder);
 
         try
@@ -41,7 +41,7 @@ public class UserMaintenanceServiceTests
                 .Returns(new List<string> { "stale-user" });
 
             // Seed user folder
-            string staleUserFolder = Path.Combine(tempFolder, "stale-user");
+            string staleUserFolder = Path.Join(tempFolder, "stale-user");
             Directory.CreateDirectory(staleUserFolder);
 
             // Execute the same deletion sequence as UserMaintenanceService
@@ -71,7 +71,7 @@ public class UserMaintenanceServiceTests
     [TestMethod]
     public void CleanupInactiveUserSkipsCleanupWhenCancelled()
     {
-        string tempFolder = Path.Combine(Path.GetTempPath(), "rfcbuddy-maintenancetests", Guid.NewGuid().ToString("N"));
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-maintenancetests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempFolder);
 
         try
@@ -79,7 +79,7 @@ public class UserMaintenanceServiceTests
             var registryMock = new Mock<IUserRegistryService>();
             var tokenMock = new Mock<IApiTokenService>();
 
-            string staleUserFolder = Path.Combine(tempFolder, "stale-user");
+            string staleUserFolder = Path.Join(tempFolder, "stale-user");
             Directory.CreateDirectory(staleUserFolder);
 
             using var cts = new CancellationTokenSource();

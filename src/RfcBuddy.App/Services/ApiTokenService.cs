@@ -42,7 +42,7 @@ public sealed class ApiTokenService : IApiTokenService
     public ApiTokenService(string dataFolder, ILogger<ApiTokenService> logger)
     {
         _dataFolder = Path.GetFullPath(dataFolder);
-        _storePath = Path.Combine(_dataFolder, "apitokens.json");
+        _storePath = Path.Join(_dataFolder, "apitokens.json");
         _logger = logger;
         _writeMutex = lockRegistry.GetOrAdd(_storePath, static path => new System.Threading.Mutex(false, "Global\\RfcBuddyTokens_" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(path)))));
         Directory.CreateDirectory(_dataFolder);
@@ -267,7 +267,7 @@ public sealed class ApiTokenService : IApiTokenService
     private void SaveStore(IEnumerable<ApiToken> tokens)
     {
         string json = JsonSerializer.Serialize(tokens, jsonOptions);
-        string tempPath = Path.Combine(_dataFolder, $"apitokens.json.tmp-{Guid.NewGuid():N}");
+        string tempPath = Path.Join(_dataFolder, $"apitokens.json.tmp-{Guid.NewGuid():N}");
         File.WriteAllText(tempPath, json);
         File.Move(tempPath, _storePath, true);
     }

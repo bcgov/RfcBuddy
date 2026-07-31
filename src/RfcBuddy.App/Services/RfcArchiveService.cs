@@ -44,7 +44,7 @@ public sealed class RfcArchiveService : IRfcArchiveService
     {
         _logger = logger;
         _dataFolder = Path.GetFullPath(dataFolder);
-        _archiveFilePath = Path.Combine(_dataFolder, archiveFileName);
+        _archiveFilePath = Path.Join(_dataFolder, archiveFileName);
         Directory.CreateDirectory(_dataFolder);
         _writeMutex = lockRegistry.GetOrAdd(_archiveFilePath, static path => new Mutex(false, "Global\\RfcBuddyArchive_" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(path)))));
     }
@@ -96,7 +96,7 @@ public sealed class RfcArchiveService : IRfcArchiveService
             {
                 try
                 {
-                    string tempFilePath = Path.Combine(_dataFolder, $"archived-rfcs.json.tmp-{Guid.NewGuid():N}");
+                    string tempFilePath = Path.Join(_dataFolder, $"archived-rfcs.json.tmp-{Guid.NewGuid():N}");
                     using (var stream = new FileStream(tempFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                     using (var writer = new StreamWriter(stream))
                     {

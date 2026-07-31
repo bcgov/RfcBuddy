@@ -9,7 +9,7 @@ public class UserRegistryServiceTests
     [TestMethod]
     public void BootstrapFirstUserAsAdminAndManageAdminStatus()
     {
-        string tempFolder = Path.Combine(Path.GetTempPath(), "rfcbuddy-userregistrytests", Guid.NewGuid().ToString("N"));
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-userregistrytests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempFolder);
 
         try
@@ -54,7 +54,7 @@ public class UserRegistryServiceTests
     [TestMethod]
     public void GetInactiveUserIdsIdentifiesInactiveUsers()
     {
-        string tempFolder = Path.Combine(Path.GetTempPath(), "rfcbuddy-userregistrytests", Guid.NewGuid().ToString("N"));
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-userregistrytests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempFolder);
 
         try
@@ -65,16 +65,16 @@ public class UserRegistryServiceTests
             var user2 = registry.EnsureRegistered("user-2", "Jane Smith", "jane@gov.bc.ca");
 
             // Seed active change-tracking file for user-1
-            string user1Folder = Path.Combine(tempFolder, "user-1");
+            string user1Folder = Path.Join(tempFolder, "user-1");
             Directory.CreateDirectory(user1Folder);
-            string user1File = Path.Combine(user1Folder, "PreviousRFCs.txt");
+            string user1File = Path.Join(user1Folder, "PreviousRFCs.txt");
             File.WriteAllText(user1File, "");
             File.SetLastWriteTimeUtc(user1File, DateTime.UtcNow.AddDays(-10));
 
             // Seed stale change-tracking file for user-2
-            string user2Folder = Path.Combine(tempFolder, "user-2");
+            string user2Folder = Path.Join(tempFolder, "user-2");
             Directory.CreateDirectory(user2Folder);
-            string user2File = Path.Combine(user2Folder, "PreviousRFCs.txt");
+            string user2File = Path.Join(user2Folder, "PreviousRFCs.txt");
             File.WriteAllText(user2File, "");
             File.SetLastWriteTimeUtc(user2File, DateTime.UtcNow.AddDays(-410));
 
@@ -94,7 +94,7 @@ public class UserRegistryServiceTests
     [TestMethod]
     public void MigratesLegacyUserHashAndFolderAndTokens()
     {
-        string tempFolder = Path.Combine(Path.GetTempPath(), "rfcbuddy-userregistrytests", Guid.NewGuid().ToString("N"));
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-userregistrytests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempFolder);
 
         try
@@ -110,9 +110,9 @@ public class UserRegistryServiceTests
             Assert.IsTrue(legacyUser.IsAdmin);
 
             // Create legacy user folder
-            string oldFolder = Path.Combine(tempFolder, oldUserId);
+            string oldFolder = Path.Join(tempFolder, oldUserId);
             Directory.CreateDirectory(oldFolder);
-            File.WriteAllText(Path.Combine(oldFolder, "Keywords.txt"), "gov,forests,general");
+            File.WriteAllText(Path.Join(oldFolder, "Keywords.txt"), "gov,forests,general");
 
             // Now log in with new unique user ID hash
             var migratedUser = registry.EnsureRegistered(newUserId, "Doe, Jane AG:EX", "jane.doe@example.com");
@@ -121,10 +121,10 @@ public class UserRegistryServiceTests
             Assert.IsTrue(migratedUser.IsAdmin);
 
             // Verify user folder was moved
-            string newFolder = Path.Combine(tempFolder, newUserId);
+            string newFolder = Path.Join(tempFolder, newUserId);
             Assert.IsFalse(Directory.Exists(oldFolder));
             Assert.IsTrue(Directory.Exists(newFolder));
-            Assert.IsTrue(File.Exists(Path.Combine(newFolder, "Keywords.txt")));
+            Assert.IsTrue(File.Exists(Path.Join(newFolder, "Keywords.txt")));
 
             // Verify token was migrated
             var userTokens = tokenService.GetTokensForUser(newUserId);

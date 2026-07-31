@@ -38,7 +38,7 @@ public sealed class UserRegistryService : IUserRegistryService
     public UserRegistryService(string dataFolder, ILogger<UserRegistryService> logger, IApiTokenService? apiTokenService = null)
     {
         _dataFolder = Path.GetFullPath(dataFolder);
-        _storePath = Path.Combine(_dataFolder, "users.json");
+        _storePath = Path.Join(_dataFolder, "users.json");
         _logger = logger;
         _apiTokenService = apiTokenService;
         _writeMutex = lockRegistry.GetOrAdd(_storePath, static path => new System.Threading.Mutex(false, "Global\\RfcBuddyUsers_" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(path)))));
@@ -265,8 +265,8 @@ public sealed class UserRegistryService : IUserRegistryService
             return;
         }
 
-        string oldFolderPath = Path.GetFullPath(Path.Combine(_dataFolder, oldSanitized));
-        string newFolderPath = Path.GetFullPath(Path.Combine(_dataFolder, newSanitized));
+        string oldFolderPath = Path.GetFullPath(Path.Join(_dataFolder, oldSanitized));
+        string newFolderPath = Path.GetFullPath(Path.Join(_dataFolder, newSanitized));
 
         string normalizedBase = _dataFolder.EndsWith(Path.DirectorySeparatorChar) ? _dataFolder : _dataFolder + Path.DirectorySeparatorChar;
         if (!oldFolderPath.StartsWith(normalizedBase, StringComparison.OrdinalIgnoreCase) || !newFolderPath.StartsWith(normalizedBase, StringComparison.OrdinalIgnoreCase))
@@ -286,7 +286,7 @@ public sealed class UserRegistryService : IUserRegistryService
                 foreach (string file in Directory.GetFiles(oldFolderPath))
                 {
                     string fileName = Path.GetFileName(file);
-                    string destFile = Path.Combine(newFolderPath, fileName);
+                    string destFile = Path.Join(newFolderPath, fileName);
                     if (!File.Exists(destFile))
                     {
                         File.Move(file, destFile);
@@ -310,8 +310,14 @@ public sealed class UserRegistryService : IUserRegistryService
             return DateTime.MinValue;
         }
 
-        string userFolder = Path.Combine(_dataFolder, sanitizedUserId);
-        string[] filePaths = [Path.Combine(userFolder, "PreviousRFCs.txt"), Path.Combine(userFolder, "ApiPreviousRFCs.txt")];
+        string userFolder = Path.GetFullPath(Path.Join(_dataFolder, sanitizedUserId));
+        string normalizedBase = _dataFolder.EndsWith(Path.DirectorySeparatorChar) ? _dataFolder : _dataFolder + Path.DirectorySeparatorChar;
+        if (!userFolder.StartsWith(normalizedBase, StringComparison.OrdinalIgnoreCase))
+        {
+            return DateTime.MinValue;
+        }
+
+        string[] filePaths = [Path.Join(userFolder, "PreviousRFCs.txt"), Path.Join(userFolder, "ApiPreviousRFCs.txt")];
         return filePaths
             .Where(File.Exists)
             .Select(File.GetLastWriteTimeUtc)
@@ -341,7 +347,7 @@ public sealed class UserRegistryService : IUserRegistryService
     private void SaveStore(IEnumerable<UserRecord> users)
     {
         string json = JsonSerializer.Serialize(users, jsonOptions);
-        string tempPath = Path.Combine(_dataFolder, $"users.json.tmp-{Guid.NewGuid():N}");
+        string tempPath = Path.Join(_dataFolder, $"users.json.tmp-{Guid.NewGuid():N}");
         File.WriteAllText(tempPath, json);
         File.Move(tempPath, _storePath, true);
     }

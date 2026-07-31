@@ -68,7 +68,7 @@ public class ExcelService(IAppSettingsService appSettingsService) : IRfcService
 
     private const string excelFileName = "ServiceNow-365-Day-Changes.xlsx";
 
-    private string ExcelFile => Path.Combine(_appSettings.DataFolder, excelFileName);
+    private string ExcelFile => Path.Join(_appSettings.DataFolder, excelFileName);
 
     /// <summary>
     /// Gets the latest changes if it's been longer than the refresh interval in the app settings.

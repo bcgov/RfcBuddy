@@ -43,7 +43,7 @@ builder.Services.AddHealthChecks();
 // nonce cookies issued by another pod. That mismatch is what forces a second
 // OIDC login on the first cross-pod POST ("Apply filters and download RFCs").
 // SetApplicationName must be identical across replicas so purpose strings match.
-string dataProtectionKeysPath = Path.Combine(builder.Configuration["DataFolder"] ?? "./data", "keys");
+string dataProtectionKeysPath = Path.Join(builder.Configuration["DataFolder"] ?? "./data", "keys");
 Directory.CreateDirectory(dataProtectionKeysPath);
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))

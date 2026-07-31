@@ -15,7 +15,7 @@ public class UserServiceTests
     [TestMethod]
     public void GetAndSavePreviousRfcsRoundTrip()
     {
-        string tempFolder = Path.Combine(Path.GetTempPath(), "rfcbuddy-userservicetests", Guid.NewGuid().ToString("N"));
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-userservicetests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempFolder);
 
         try
@@ -65,7 +65,7 @@ public class UserServiceTests
     [TestMethod]
     public void GetAndSaveUserKeywordsRoundTrip()
     {
-        string tempFolder = Path.Combine(Path.GetTempPath(), "rfcbuddy-userservicetests", Guid.NewGuid().ToString("N"));
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-userservicetests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempFolder);
 
         try

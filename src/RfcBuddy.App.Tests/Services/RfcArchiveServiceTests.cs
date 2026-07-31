@@ -13,7 +13,7 @@ public class RfcArchiveServiceTests
     {
         DateTime now = DateTime.Now;
 
-        string tempFolder = Path.Combine(Path.GetTempPath(), "rfcbuddy-archive-tests", Guid.NewGuid().ToString("N"));
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-archive-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempFolder);
 
         try
@@ -41,7 +41,7 @@ public class RfcArchiveServiceTests
     [TestMethod]
     public void UpdateArchivePreservesLatestVersionAcrossConcurrentUpdates()
     {
-        string tempFolder = Path.Combine(Path.GetTempPath(), "rfcbuddy-archive-tests", Guid.NewGuid().ToString("N"));
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-archive-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempFolder);
 
         try
@@ -51,7 +51,7 @@ public class RfcArchiveServiceTests
 
             for (int iteration = 0; iteration < 25; iteration++)
             {
-                var archiveFile = Path.Combine(tempFolder, "archived-rfcs.json");
+                var archiveFile = Path.Join(tempFolder, "archived-rfcs.json");
                 if (File.Exists(archiveFile))
                 {
                     File.Delete(archiveFile);
