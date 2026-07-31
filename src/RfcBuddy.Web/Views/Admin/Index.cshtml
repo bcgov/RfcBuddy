@@ -41,7 +41,7 @@
                         }
                     </td>
                     <td>
-                        <form asp-action="SetAdmin" method="post" style="display:inline">
+                        <form asp-action="SetAdmin" method="post" class="inline-form">
                             <input type="hidden" name="userId" value="@user.UserId" />
                             <input type="hidden" name="isAdmin" value="@(user.IsAdmin ? "false" : "true")" />
                             @Html.AntiForgeryToken()
@@ -110,7 +110,7 @@
                         <td>
                             @if (!token.Revoked && !isExpired)
                             {
-                                <form asp-action="RevokeToken" method="post" style="display:inline">
+                                <form asp-action="RevokeToken" method="post" class="inline-form">
                                     <input type="hidden" name="tokenId" value="@token.Id" />
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to revoke this user\'s token?');">Revoke</button>
@@ -123,5 +123,4 @@
         </table>
     }
 </div>
-
 

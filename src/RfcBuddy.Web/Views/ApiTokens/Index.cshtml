@@ -68,7 +68,7 @@
                         <td>
                             @if (!token.Revoked && !isExpired)
                             {
-                                <form asp-action="Revoke" method="post" style="display:inline">
+                                <form asp-action="Revoke" method="post" class="inline-form">
                                     <input type="hidden" name="tokenId" value="@token.Id" />
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to revoke this token?');">Revoke</button>
@@ -82,7 +82,7 @@
     }
 
     <div class="card my-5 shadow-sm">
-        <div class="card-header text-white" style="background-color: #0E3468;">
+        <div class="card-header text-white api-card-header">
             <h4 class="mb-0">REST API Integration Guide</h4>
         </div>
         <div class="card-body">
@@ -101,7 +101,7 @@
             <table class="table table-bordered">
                 <tbody>
                     <tr>
-                        <th style="width: 15%;">Method</th>
+                        <th class="api-method-column">Method</th>
                         <td><span class="badge bg-success">POST</span></td>
                     </tr>
                     <tr>
@@ -191,5 +191,4 @@ $response.rfcs | Format-Table -Property rfcNumber, approvalStatus, changeStatus,
         </div>
     </div>
 </div>
-
 
