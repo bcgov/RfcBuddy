@@ -38,6 +38,7 @@ This document provides a detailed security posture, framework version audit, dep
 | `1.4` | `2026-07-30` | `Security Review Agent` | `Separated unique User ID (preferred_username) from display name ("name" claim), and implemented automatic user hash migration for users.json, apitokens.json, and /data/ folders.` |
 | `1.5` | `2026-07-30` | `Security Review Agent` | `Resolved 6 Sonar code smell findings (S1135 and CA1873) on security-remediation-2026-07-30 branch. Ran fresh Sonar scan and confirmed Quality Gate PASSED with 0 new issues.` |
 | `1.6` | `2026-07-31` | `Security Review Agent` | `Checked CancellationToken in UserMaintenanceService to skip IO on cancellation, updated app version to 1.2.4, and ran fresh SonarQube scan confirming Quality Gate PASSED.` |
+| `1.7` | `2026-07-31` | `Security Review Agent` | `Replaced real PII in UserRegistryServiceTests with synthetic placeholders, updated GetHashedUserId in ApiTokensController and AdminController to hash all user IDs consistently, fixed whitespace formatting, and ran fresh SonarQube scan confirming Quality Gate PASSED.` |
 
 ---
 
@@ -95,9 +96,9 @@ This section summarizes static application security testing (SAST) and code qual
 ### 4.1 Quality Gate Status
 * **Quality Gate Overall:** `PASSED`
 * **Project Key / Branch:** `RfcBuddy` / `security-remediation-2026-07-30`
-* **Scan Date:** `2026-07-31T09:09:32-0700`
+* **Scan Date:** `2026-07-31T09:23:04-0700`
 * **Application Version Scanned:** `1.2.4`
-* **Analysis Task ID:** `0ae8764d-21a6-468d-9ead-98a6ea34b708`
+* **Analysis Task ID:** `3f4b7f98-b0e3-4d63-afeb-b369a1b4cb1c`
 * **Dashboard URL:** `https://sonarqube.econ.gov.bc.ca/sonar/dashboard?id=RfcBuddy&branch=security-remediation-2026-07-30`
 
 ### 4.2 Security & Quality Metrics

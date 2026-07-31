@@ -99,14 +99,14 @@ public class UserRegistryServiceTests
 
         try
         {
-            string oldUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash("Baerike, Christian AG:EX");
-            string newUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash("cbaerike");
+            string oldUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash("Doe, Jane AG:EX");
+            string newUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash("jdoe");
 
             var tokenService = new ApiTokenService(tempFolder, NullLogger<ApiTokenService>.Instance);
             var tokenResult = tokenService.CreateToken(oldUserId, "Legacy Token", DateTime.UtcNow.AddDays(30));
 
             var registry = new UserRegistryService(tempFolder, NullLogger<UserRegistryService>.Instance, tokenService);
-            var legacyUser = registry.EnsureRegistered(oldUserId, "Baerike, Christian AG:EX", "christian.baerike@gov.bc.ca");
+            var legacyUser = registry.EnsureRegistered(oldUserId, "Doe, Jane AG:EX", "jane.doe@example.com");
             Assert.IsTrue(legacyUser.IsAdmin);
 
             // Create legacy user folder
@@ -115,7 +115,7 @@ public class UserRegistryServiceTests
             File.WriteAllText(Path.Combine(oldFolder, "Keywords.txt"), "gov,forests,general");
 
             // Now log in with new unique user ID hash
-            var migratedUser = registry.EnsureRegistered(newUserId, "Baerike, Christian AG:EX", "christian.baerike@gov.bc.ca");
+            var migratedUser = registry.EnsureRegistered(newUserId, "Doe, Jane AG:EX", "jane.doe@example.com");
 
             Assert.AreEqual(newUserId, migratedUser.UserId);
             Assert.IsTrue(migratedUser.IsAdmin);

@@ -69,11 +69,12 @@ public class ApiTokensController(IApiTokenService apiTokenService) : Controller
 
     private string GetHashedUserId()
     {
-        string userName = User.Identity?.Name ?? "Generic User";
-        if (userName.Length == 64 && userName.All(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
-        {
-            return userName;
-        }
-        return RfcBuddy.App.Core.Cryptography.GetSha256Hash(userName);
+        string userUniqueId = User.FindFirst("preferred_username")?.Value
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? User.Identity?.Name
+            ?? "Generic User";
+
+        return RfcBuddy.App.Core.Cryptography.GetSha256Hash(userUniqueId);
     }
 }

@@ -87,7 +87,7 @@ public class UserMaintenanceServiceTests
 
             var service = new UserMaintenanceService(new Mock<IServiceScopeFactory>().Object, NullLogger<UserMaintenanceService>.Instance);
             var method = typeof(UserMaintenanceService).GetMethod("CleanupInactiveUser", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            
+
             method!.Invoke(service, new object[] { "stale-user", tempFolder, tokenMock.Object, registryMock.Object, cts.Token });
 
             // Since cancellation was requested, no deletion or service purging should occur
