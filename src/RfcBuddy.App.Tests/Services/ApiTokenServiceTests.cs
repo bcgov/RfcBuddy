@@ -9,7 +9,7 @@ public class ApiTokenServiceTests
     [TestMethod]
     public void CreateAndAuthenticateTokenRoundTrip()
     {
-        string tempFolder = Path.Combine(Path.GetTempPath(), "rfcbuddy-tests", Guid.NewGuid().ToString("N"));
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempFolder);
 
         try

@@ -3,9 +3,10 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.HttpOverrides;
 using RfcBuddy.App.Services;
 using RfcBuddy.Web.Authentication;
 using RfcBuddy.Web.Authorization;
@@ -13,6 +14,7 @@ using RfcBuddy.Web.Services;
 using RfcBuddy.Web.Support;
 using System.Security.Claims;
 using System.Security.Principal;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +27,7 @@ builder.Services.AddScoped<IWordService, WordService>();
 builder.Services.AddSingleton<IRfcArchiveService, RfcArchiveService>();
 builder.Services.AddSingleton<IRfcChangeTracker, RfcChangeTracker>();
 builder.Services.AddSingleton<IApiTokenService>(provider => new ApiTokenService(builder.Configuration["DataFolder"] ?? "./data", provider.GetRequiredService<ILogger<ApiTokenService>>()));
-builder.Services.AddSingleton<IUserRegistryService>(provider => new UserRegistryService(builder.Configuration["DataFolder"] ?? "./data", provider.GetRequiredService<ILogger<UserRegistryService>>()));
+builder.Services.AddSingleton<IUserRegistryService>(provider => new UserRegistryService(builder.Configuration["DataFolder"] ?? "./data", provider.GetRequiredService<ILogger<UserRegistryService>>(), provider.GetService<IApiTokenService>()));
 builder.Services.AddScoped<UserRegistrationFilter>();
 builder.Services.AddTransient<IAuthorizationHandler, AdminAuthorizationHandler>();
 builder.Services.AddHostedService<ArchiveUpdateService>();
@@ -41,7 +43,7 @@ builder.Services.AddHealthChecks();
 // nonce cookies issued by another pod. That mismatch is what forces a second
 // OIDC login on the first cross-pod POST ("Apply filters and download RFCs").
 // SetApplicationName must be identical across replicas so purpose strings match.
-string dataProtectionKeysPath = Path.Combine(builder.Configuration["DataFolder"] ?? "./data", "keys");
+string dataProtectionKeysPath = Path.Join(builder.Configuration["DataFolder"] ?? "./data", "keys");
 Directory.CreateDirectory(dataProtectionKeysPath);
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
@@ -87,7 +89,7 @@ builder.Services.AddAuthentication(options =>
         options.ClientId = builder.Configuration.GetSection(keycloakSection)["resource"];
         options.ClientSecret = builder.Configuration.GetSection(keycloakSection).GetSection("credentials")["secret"];
         options.MetadataAddress = $"{builder.Configuration.GetSection(keycloakSection)["auth-server-url"]}/realms/{builder.Configuration.GetSection(keycloakSection)["realm"]}/.well-known/openid-configuration";
-        options.RequireHttpsMetadata = false;
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.GetClaimsFromUserInfoEndpoint = true;
         options.ResponseType = OpenIdConnectResponseType.Code;
         // Use Pushed Authorization Requests (PAR) when Keycloak advertises the endpoint.
@@ -117,7 +119,7 @@ builder.Services.AddAuthentication(options =>
         options.Scope.Add("profile");
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            NameClaimType = "name",
+            NameClaimType = "preferred_username",
             RoleClaimType = ClaimTypes.Role,
             ValidateIssuer = true,
         };
@@ -126,9 +128,30 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("Admin", policy => policy.Requirements.Add(new AdminRequirement()));
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("ApiPolicy", opt =>
+    {
+        opt.PermitLimit = 100;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+});
+
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    context.Response.Headers.Append("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:;");
+    await next();
+});
 
 // Anonymous liveness/readiness endpoint for OpenShift probes. Must NOT require auth,
 // otherwise the probe triggers the OIDC/PAR challenge and the pod never goes Ready.
@@ -146,6 +169,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

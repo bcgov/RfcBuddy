@@ -15,6 +15,7 @@ public interface IApiTokenService
     bool RevokeToken(string tokenId, string requestingUserId);
     bool RevokeTokenAsAdmin(string tokenId);
     void PurgeTokensForUser(string userId);
+    int MigrateUserTokens(string oldUserId, string newUserId);
 }
 
 public sealed class TokenCreationResult
@@ -41,7 +42,7 @@ public sealed class ApiTokenService : IApiTokenService
     public ApiTokenService(string dataFolder, ILogger<ApiTokenService> logger)
     {
         _dataFolder = Path.GetFullPath(dataFolder);
-        _storePath = Path.Combine(_dataFolder, "apitokens.json");
+        _storePath = Path.Join(_dataFolder, "apitokens.json");
         _logger = logger;
         _writeMutex = lockRegistry.GetOrAdd(_storePath, static path => new System.Threading.Mutex(false, "Global\\RfcBuddyTokens_" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(path)))));
         Directory.CreateDirectory(_dataFolder);
@@ -207,6 +208,43 @@ public sealed class ApiTokenService : IApiTokenService
         }
     }
 
+    // REMINDER: REMOVE MIGRATION CODE BY 2027-09-03 (400 days from 2026-07-30).
+    // By this date, all users will either have logged in and been migrated, or cleaned up after 400 days of inactivity.
+    public int MigrateUserTokens(string oldUserId, string newUserId)
+    {
+        if (string.IsNullOrWhiteSpace(oldUserId) || string.IsNullOrWhiteSpace(newUserId) || string.Equals(oldUserId, newUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        _writeMutex.WaitOne();
+        try
+        {
+            List<ApiToken> tokens = LoadStore();
+            int migratedCount = 0;
+            foreach (ApiToken token in tokens.Where(x => string.Equals(x.OwnerUserId, oldUserId, StringComparison.OrdinalIgnoreCase)))
+            {
+                token.OwnerUserId = newUserId;
+                migratedCount++;
+            }
+
+            if (migratedCount > 0)
+            {
+                SaveStore(tokens);
+                if (_logger.IsEnabled(LogLevel.Information))
+                {
+                    _logger.LogInformation("Migrated {Count} API token(s) from user ID {OldUserId} to {NewUserId}", migratedCount, oldUserId, newUserId);
+                }
+            }
+
+            return migratedCount;
+        }
+        finally
+        {
+            _writeMutex.ReleaseMutex();
+        }
+    }
+
     private List<ApiToken> LoadStore()
     {
         if (!File.Exists(_storePath))
@@ -229,7 +267,7 @@ public sealed class ApiTokenService : IApiTokenService
     private void SaveStore(IEnumerable<ApiToken> tokens)
     {
         string json = JsonSerializer.Serialize(tokens, jsonOptions);
-        string tempPath = Path.Combine(_dataFolder, $"apitokens.json.tmp-{Guid.NewGuid():N}");
+        string tempPath = Path.Join(_dataFolder, $"apitokens.json.tmp-{Guid.NewGuid():N}");
         File.WriteAllText(tempPath, json);
         File.Move(tempPath, _storePath, true);
     }

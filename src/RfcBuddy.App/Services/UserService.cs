@@ -97,12 +97,12 @@ public class UserService(IAppSettingsService appSettingsService, IPrincipal user
     /// <summary>
     /// The relative path to the previous RFCs file.
     /// </summary>
-    private string PreviousRfcsFilePath => Path.Combine(_appSettings.DataFolder, UserId);
+    private string PreviousRfcsFilePath => Path.Join(_appSettings.DataFolder, UserId);
 
     private string GetBaselineFilePath(BaselineScope scope)
     {
         string fileName = scope == BaselineScope.Api ? apiPreviousRfcsFileName : previousRfcsFileName;
-        return Path.Combine(PreviousRfcsFilePath, fileName);
+        return Path.Join(PreviousRfcsFilePath, fileName);
     }
 
     /// <summary>
@@ -198,12 +198,12 @@ public class UserService(IAppSettingsService appSettingsService, IPrincipal user
     /// <summary>
     /// The relative path to the keywords file.
     /// </summary>
-    private string KeywordsFilePath => Path.Combine(_appSettings.DataFolder, UserId);
+    private string KeywordsFilePath => Path.Join(_appSettings.DataFolder, UserId);
 
     /// <summary>
     /// The relative path to the keywords file, including the filename.
     /// </summary>
-    private string KeywordsFile => Path.Combine(KeywordsFilePath, keywordsFileName);
+    private string KeywordsFile => Path.Join(KeywordsFilePath, keywordsFileName);
 
     /// <summary>
     /// Turns the character-separated keywords into a list.

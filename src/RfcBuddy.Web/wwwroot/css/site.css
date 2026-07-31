@@ -95,3 +95,19 @@ footer {
     color: #D6E8FF;
     font-size: 0.875rem;
 }
+
+.inline-form {
+    display: inline;
+}
+
+.api-card-header {
+    background-color: #0E3468;
+}
+
+.api-method-column {
+    width: 15%;
+}
+
+.cancel-link {
+    margin-left: 10px;
+}

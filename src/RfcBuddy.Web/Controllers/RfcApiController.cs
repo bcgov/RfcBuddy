@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using RfcBuddy.App.Objects;
 using RfcBuddy.App.Services;
 using RfcBuddy.App.Core;
@@ -10,6 +11,7 @@ namespace RfcBuddy.Web.Controllers;
 [ApiController]
 [Route("api/v1/rfcs")]
 [Authorize(AuthenticationSchemes = "ApiToken")]
+[EnableRateLimiting("ApiPolicy")]
 [IgnoreAntiforgeryToken]
 public class RfcApiController(
     ILogger<RfcApiController> logger,

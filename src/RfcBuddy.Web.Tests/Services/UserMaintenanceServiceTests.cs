@@ -29,7 +29,7 @@ public class UserMaintenanceServiceTests
     public void CleanupLogicPerformsCorrectFileSystemAndServiceDeletions()
     {
         // We can verify that the central services used by the cleaner service function as expected
-        string tempFolder = Path.Combine(Path.GetTempPath(), "rfcbuddy-maintenancetests", Guid.NewGuid().ToString("N"));
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-maintenancetests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempFolder);
 
         try
@@ -41,7 +41,7 @@ public class UserMaintenanceServiceTests
                 .Returns(new List<string> { "stale-user" });
 
             // Seed user folder
-            string staleUserFolder = Path.Combine(tempFolder, "stale-user");
+            string staleUserFolder = Path.Join(tempFolder, "stale-user");
             Directory.CreateDirectory(staleUserFolder);
 
             // Execute the same deletion sequence as UserMaintenanceService
@@ -58,6 +58,42 @@ public class UserMaintenanceServiceTests
             Assert.IsFalse(Directory.Exists(staleUserFolder));
             tokenMock.Verify(x => x.PurgeTokensForUser("stale-user"), Times.Once);
             registryMock.Verify(x => x.RemoveUser("stale-user"), Times.Once);
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                Directory.Delete(tempFolder, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void CleanupInactiveUserSkipsCleanupWhenCancelled()
+    {
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-maintenancetests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempFolder);
+
+        try
+        {
+            var registryMock = new Mock<IUserRegistryService>();
+            var tokenMock = new Mock<IApiTokenService>();
+
+            string staleUserFolder = Path.Join(tempFolder, "stale-user");
+            Directory.CreateDirectory(staleUserFolder);
+
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            var service = new UserMaintenanceService(new Mock<IServiceScopeFactory>().Object, NullLogger<UserMaintenanceService>.Instance);
+            var method = typeof(UserMaintenanceService).GetMethod("CleanupInactiveUser", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            method!.Invoke(service, new object[] { "stale-user", tempFolder, tokenMock.Object, registryMock.Object, cts.Token });
+
+            // Since cancellation was requested, no deletion or service purging should occur
+            Assert.IsTrue(Directory.Exists(staleUserFolder));
+            tokenMock.Verify(x => x.PurgeTokensForUser(It.IsAny<string>()), Times.Never);
+            registryMock.Verify(x => x.RemoveUser(It.IsAny<string>()), Times.Never);
         }
         finally
         {
