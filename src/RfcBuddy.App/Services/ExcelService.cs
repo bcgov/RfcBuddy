@@ -251,7 +251,12 @@ public class ExcelService(IAppSettingsService appSettingsService) : IRfcService
         bool match = false;
         foreach (string keyword in keywords)
         {
-            string pattern = @"\b" + keyword + @"\b";
+            if (string.IsNullOrEmpty(keyword))
+            {
+                continue;
+            }
+
+            string pattern = @"\b" + Regex.Escape(keyword) + @"\b";
             if (Regex.IsMatch(rfc.AssetTags, pattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(1000))
                 || Regex.IsMatch(rfc.Description, pattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(1000))
                 || Regex.IsMatch(rfc.RiskAssessment, pattern, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(1000)))

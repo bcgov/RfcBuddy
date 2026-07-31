@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using RfcBuddy.App.Services;
+using System.Security.Claims;
 
 namespace RfcBuddy.Web.Controllers;
 
 [Authorize]
+[EnableRateLimiting("ApiPolicy")]
 public class ApiTokensController(IApiTokenService apiTokenService) : Controller
 {
     private readonly IApiTokenService _apiTokenService = apiTokenService;
@@ -12,7 +15,7 @@ public class ApiTokensController(IApiTokenService apiTokenService) : Controller
     [HttpGet]
     public IActionResult Index()
     {
-        string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(User.Identity?.Name ?? "Generic User");
+        string userId = GetHashedUserId();
         var tokens = _apiTokenService.GetTokensForUser(userId);
         return View(tokens);
     }
@@ -32,7 +35,7 @@ public class ApiTokensController(IApiTokenService apiTokenService) : Controller
             return View();
         }
 
-        string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(User.Identity?.Name ?? "Generic User");
+        string userId = GetHashedUserId();
         if (string.IsNullOrWhiteSpace(label))
         {
             ModelState.AddModelError("label", "Label is required.");
@@ -59,8 +62,19 @@ public class ApiTokensController(IApiTokenService apiTokenService) : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(User.Identity?.Name ?? "Generic User");
+        string userId = GetHashedUserId();
         _ = _apiTokenService.RevokeToken(tokenId, userId);
         return RedirectToAction(nameof(Index));
+    }
+
+    private string GetHashedUserId()
+    {
+        string userUniqueId = User.FindFirst("preferred_username")?.Value
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? User.Identity?.Name
+            ?? "Generic User";
+
+        return RfcBuddy.App.Core.Cryptography.GetSha256Hash(userUniqueId);
     }
 }

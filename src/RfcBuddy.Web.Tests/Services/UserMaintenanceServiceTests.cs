@@ -67,4 +67,40 @@ public class UserMaintenanceServiceTests
             }
         }
     }
+
+    [TestMethod]
+    public void CleanupInactiveUserSkipsCleanupWhenCancelled()
+    {
+        string tempFolder = Path.Combine(Path.GetTempPath(), "rfcbuddy-maintenancetests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempFolder);
+
+        try
+        {
+            var registryMock = new Mock<IUserRegistryService>();
+            var tokenMock = new Mock<IApiTokenService>();
+
+            string staleUserFolder = Path.Combine(tempFolder, "stale-user");
+            Directory.CreateDirectory(staleUserFolder);
+
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            var service = new UserMaintenanceService(new Mock<IServiceScopeFactory>().Object, NullLogger<UserMaintenanceService>.Instance);
+            var method = typeof(UserMaintenanceService).GetMethod("CleanupInactiveUser", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            method!.Invoke(service, new object[] { "stale-user", tempFolder, tokenMock.Object, registryMock.Object, cts.Token });
+
+            // Since cancellation was requested, no deletion or service purging should occur
+            Assert.IsTrue(Directory.Exists(staleUserFolder));
+            tokenMock.Verify(x => x.PurgeTokensForUser(It.IsAny<string>()), Times.Never);
+            registryMock.Verify(x => x.RemoveUser(It.IsAny<string>()), Times.Never);
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                Directory.Delete(tempFolder, recursive: true);
+            }
+        }
+    }
 }
