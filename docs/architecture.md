@@ -96,7 +96,7 @@ src/
 | **REST API Search** | `REST API` | `POST /api/v1/rfcs/search` (`RfcApiController.Search`) | Verified |
 | **Health Check Probe** | `HTTP Endpoint` | `GET /healthz` | Verified |
 | **Archive Auto-Update** | `Background Worker` | `ArchiveUpdateService` (Hosted Service, hourly check, 7-day refresh interval) | Verified |
-| **User Cleanup Worker** | `Background Worker` | `UserMaintenanceService` (Hosted Service, 24-hour interval) | Verified |
+| **User Cleanup Worker** | `Background Worker` | `UserMaintenanceService` (Hosted Service, 6-hour interval) | Verified |
 
 ---
 
