@@ -37,6 +37,7 @@ This document provides a detailed security posture, framework version audit, dep
 | `1.3` | `2026-07-30` | `Security Review Agent` | `Updated Microsoft.AspNetCore.Authentication.OpenIdConnect to 10.0.10 and application version to 1.2.3. Executed fresh SonarQube scan.` |
 | `1.4` | `2026-07-30` | `Security Review Agent` | `Separated unique User ID (preferred_username) from display name ("name" claim), and implemented automatic user hash migration for users.json, apitokens.json, and /data/ folders.` |
 | `1.5` | `2026-07-30` | `Security Review Agent` | `Resolved 6 Sonar code smell findings (S1135 and CA1873) on security-remediation-2026-07-30 branch. Ran fresh Sonar scan and confirmed Quality Gate PASSED with 0 new issues.` |
+| `1.6` | `2026-07-31` | `Security Review Agent` | `Checked CancellationToken in UserMaintenanceService to skip IO on cancellation, updated app version to 1.2.4, and ran fresh SonarQube scan confirming Quality Gate PASSED.` |
 
 ---
 
@@ -94,9 +95,9 @@ This section summarizes static application security testing (SAST) and code qual
 ### 4.1 Quality Gate Status
 * **Quality Gate Overall:** `PASSED`
 * **Project Key / Branch:** `RfcBuddy` / `security-remediation-2026-07-30`
-* **Scan Date:** `2026-07-30T18:09:55-0700`
-* **Application Version Scanned:** `1.2.3`
-* **Analysis Task ID:** `18b56b29-2b86-4a46-b00f-b520776f1caa`
+* **Scan Date:** `2026-07-31T09:09:32-0700`
+* **Application Version Scanned:** `1.2.4`
+* **Analysis Task ID:** `0ae8764d-21a6-468d-9ead-98a6ea34b708`
 * **Dashboard URL:** `https://sonarqube.econ.gov.bc.ca/sonar/dashboard?id=RfcBuddy&branch=security-remediation-2026-07-30`
 
 ### 4.2 Security & Quality Metrics

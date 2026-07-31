@@ -13,7 +13,15 @@ public sealed class UserMaintenanceService(
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await Task.Delay(TimeSpan.FromHours(6), stoppingToken).ConfigureAwait(false);
+            try
+            {
+                await Task.Delay(TimeSpan.FromHours(6), stoppingToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+
             using IServiceScope scope = _scopeFactory.CreateScope();
             var appSettingsService = scope.ServiceProvider.GetRequiredService<IAppSettingsService>();
             var tokenService = scope.ServiceProvider.GetRequiredService<IApiTokenService>();
@@ -22,6 +30,11 @@ public sealed class UserMaintenanceService(
 
             foreach (string userId in registryService.GetInactiveUserIds(TimeSpan.FromDays(400)))
             {
+                if (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
                 CleanupInactiveUser(userId, dataFolder, tokenService, registryService, stoppingToken);
             }
         }
@@ -34,6 +47,11 @@ public sealed class UserMaintenanceService(
         IUserRegistryService registryService,
         CancellationToken stoppingToken)
     {
+        if (stoppingToken.IsCancellationRequested)
+        {
+            return;
+        }
+
         try
         {
             if (string.IsNullOrEmpty(userId) || Path.IsPathRooted(userId))
@@ -59,9 +77,19 @@ public sealed class UserMaintenanceService(
                 return;
             }
 
+            if (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+
             if (Directory.Exists(userFolder))
             {
                 Directory.Delete(userFolder, recursive: true);
+            }
+
+            if (stoppingToken.IsCancellationRequested)
+            {
+                return;
             }
 
             tokenService.PurgeTokensForUser(userId);
@@ -71,10 +99,6 @@ public sealed class UserMaintenanceService(
             {
                 _logger.LogInformation("Removed inactive user data for {UserId}", userId);
             }
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-        {
-            throw;
         }
         catch (IOException ex)
         {
