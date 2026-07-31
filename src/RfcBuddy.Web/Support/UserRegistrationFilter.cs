@@ -11,12 +11,18 @@ public sealed class UserRegistrationFilter(IUserRegistryService userRegistryServ
     {
         if (context.HttpContext.User.Identity?.IsAuthenticated == true)
         {
-            string userName = context.HttpContext.User.Identity.Name ?? "Generic User";
-            string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(userName);
+            string userUniqueId = context.HttpContext.User.FindFirst("preferred_username")?.Value
+                ?? context.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? context.HttpContext.User.FindFirst("sub")?.Value
+                ?? context.HttpContext.User.Identity.Name
+                ?? "Generic User";
+
+            string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(userUniqueId);
 
             string identity = context.HttpContext.User.FindFirst("name")?.Value
                 ?? context.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
-                ?? userName;
+                ?? userUniqueId;
+
             string email = context.HttpContext.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
                 ?? context.HttpContext.User.FindFirst("email")?.Value
                 ?? string.Empty;

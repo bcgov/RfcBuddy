@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using RfcBuddy.App.Services;
+using System.Security.Claims;
 
 namespace RfcBuddy.Web.Controllers;
 
 [Authorize]
+[EnableRateLimiting("ApiPolicy")]
 public class ApiTokensController(IApiTokenService apiTokenService) : Controller
 {
     private readonly IApiTokenService _apiTokenService = apiTokenService;
@@ -12,7 +15,7 @@ public class ApiTokensController(IApiTokenService apiTokenService) : Controller
     [HttpGet]
     public IActionResult Index()
     {
-        string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(User.Identity?.Name ?? "Generic User");
+        string userId = GetHashedUserId();
         var tokens = _apiTokenService.GetTokensForUser(userId);
         return View(tokens);
     }
@@ -32,7 +35,7 @@ public class ApiTokensController(IApiTokenService apiTokenService) : Controller
             return View();
         }
 
-        string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(User.Identity?.Name ?? "Generic User");
+        string userId = GetHashedUserId();
         if (string.IsNullOrWhiteSpace(label))
         {
             ModelState.AddModelError("label", "Label is required.");
@@ -59,8 +62,18 @@ public class ApiTokensController(IApiTokenService apiTokenService) : Controller
             return RedirectToAction(nameof(Index));
         }
 
-        string userId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(User.Identity?.Name ?? "Generic User");
+        string userId = GetHashedUserId();
         _ = _apiTokenService.RevokeToken(tokenId, userId);
         return RedirectToAction(nameof(Index));
+    }
+
+    private string GetHashedUserId()
+    {
+        string userName = User.Identity?.Name ?? "Generic User";
+        if (userName.Length == 64 && userName.All(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
+        {
+            return userName;
+        }
+        return RfcBuddy.App.Core.Cryptography.GetSha256Hash(userName);
     }
 }

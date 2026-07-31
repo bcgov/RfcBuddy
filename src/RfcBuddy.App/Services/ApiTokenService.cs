@@ -15,6 +15,7 @@ public interface IApiTokenService
     bool RevokeToken(string tokenId, string requestingUserId);
     bool RevokeTokenAsAdmin(string tokenId);
     void PurgeTokensForUser(string userId);
+    int MigrateUserTokens(string oldUserId, string newUserId);
 }
 
 public sealed class TokenCreationResult
@@ -200,6 +201,43 @@ public sealed class ApiTokenService : IApiTokenService
             List<ApiToken> tokens = LoadStore();
             List<ApiToken> remaining = tokens.Where(x => !string.Equals(x.OwnerUserId, userId, StringComparison.OrdinalIgnoreCase)).ToList();
             SaveStore(remaining);
+        }
+        finally
+        {
+            _writeMutex.ReleaseMutex();
+        }
+    }
+
+    // REMINDER: REMOVE MIGRATION CODE BY 2027-09-03 (400 days from 2026-07-30).
+    // By this date, all users will either have logged in and been migrated, or cleaned up after 400 days of inactivity.
+    public int MigrateUserTokens(string oldUserId, string newUserId)
+    {
+        if (string.IsNullOrWhiteSpace(oldUserId) || string.IsNullOrWhiteSpace(newUserId) || string.Equals(oldUserId, newUserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return 0;
+        }
+
+        _writeMutex.WaitOne();
+        try
+        {
+            List<ApiToken> tokens = LoadStore();
+            int migratedCount = 0;
+            foreach (ApiToken token in tokens.Where(x => string.Equals(x.OwnerUserId, oldUserId, StringComparison.OrdinalIgnoreCase)))
+            {
+                token.OwnerUserId = newUserId;
+                migratedCount++;
+            }
+
+            if (migratedCount > 0)
+            {
+                SaveStore(tokens);
+                if (_logger.IsEnabled(LogLevel.Information))
+                {
+                    _logger.LogInformation("Migrated {Count} API token(s) from user ID {OldUserId} to {NewUserId}", migratedCount, oldUserId, newUserId);
+                }
+            }
+
+            return migratedCount;
         }
         finally
         {

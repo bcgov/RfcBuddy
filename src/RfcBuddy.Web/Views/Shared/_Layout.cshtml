@@ -43,7 +43,7 @@
                 <h1>RFC Buddy</h1>
             </div>
             <div class="col-lg-6">
-                <p class="header-user text-end">@User.Identity?.Name</p>
+                <p class="header-user text-end">@(User.FindFirst("name")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? User.Identity?.Name)</p>
             </div>
         </div>
     </header>

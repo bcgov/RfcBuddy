@@ -33,7 +33,8 @@ public class AdminController(IApiTokenService apiTokenService, IUserRegistryServ
             return RedirectToAction(nameof(Index));
         }
 
-        string adminUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(User.Identity?.Name ?? "Generic User");
+        string adminUserName = User.Identity?.Name ?? "Generic User";
+        string adminUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash(adminUserName);
         _ = _userRegistryService.SetAdmin(userId, isAdmin, adminUserId);
         return RedirectToAction(nameof(Index));
     }
