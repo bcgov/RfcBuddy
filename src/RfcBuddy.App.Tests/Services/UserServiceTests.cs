@@ -80,9 +80,9 @@ public class UserServiceTests
 
             userService.GetUserKeywords(out var ministry, out var general, out var ignore);
 
-            CollectionAssert.AreEqual(new List<string> { "ministry" }, ministry);
-            CollectionAssert.AreEqual(new List<string> { "general1", "general2" }, general);
-            CollectionAssert.AreEqual(new List<string> { "ignore" }, ignore);
+            Assert.AreSequenceEqual(new List<string> { "ministry" }, ministry);
+            Assert.AreSequenceEqual(new List<string> { "general1", "general2" }, general);
+            Assert.AreSequenceEqual(new List<string> { "ignore" }, ignore);
         }
         finally
         {

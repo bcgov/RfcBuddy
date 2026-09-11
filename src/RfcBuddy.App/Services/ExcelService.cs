@@ -67,6 +67,7 @@ public class ExcelService(IAppSettingsService appSettingsService) : IRfcService
     private const int colRisk = 7;
 
     private const string excelFileName = "ServiceNow-365-Day-Changes.xlsx";
+    private static readonly TimeSpan sourceRequestTimeout = TimeSpan.FromSeconds(30);
 
     private string ExcelFile => Path.Join(_appSettings.DataFolder, excelFileName);
 
@@ -87,6 +88,7 @@ public class ExcelService(IAppSettingsService appSettingsService) : IRfcService
                 handler.Credentials = new NetworkCredential(_appSettings.SourceUser, _appSettings.SourcePassword);
             }
             using HttpClient client = new(handler);
+            client.Timeout = sourceRequestTimeout;
             using var responseStream = await client.GetStreamAsync(_appSettings.SourceUrl).ConfigureAwait(true);
             using var fileStream = new FileStream(ExcelFile, FileMode.Create);
             await responseStream.CopyToAsync(fileStream).ConfigureAwait(true);

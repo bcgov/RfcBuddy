@@ -1,6 +1,6 @@
 # Application Architecture & Technology Document: RFCBuddy - RFC Buddy
 
-This document provides a comprehensive blueprint and technology assessment of **RFC Buddy (RFCBuddy)**. It is designed to be maintained, verified, and parsed by the Architecture Review Agent to ensure architectural standards, security policies, and technical currency are continuously verified.
+This document records the observed architecture, security boundaries, deployment shape, and evidence gaps for RFC Buddy.
 
 ---
 
@@ -8,95 +8,89 @@ This document provides a comprehensive blueprint and technology assessment of **
 
 | Version | Date | Author | Changes |
 | :--- | :--- | :--- | :--- |
-| `1.0` | `2026-07-30` | `Architecture Review Agent` | `Initial architecture documentation generation based on codebase inspection and workspace analysis.` |
+| `1.0` | `2026-07-30` | `Architecture Review Agent` | `Initial architecture documentation.` |
+| `1.1` | `2026-09-11` | `Architecture Review Agent` | `Updated topology, dependency and container evidence; added Unicode, contract degradation, platform alignment, and Zero Trust assessments.` |
+| `1.2` | `2026-09-11` | `Architecture Review Agent` | `Recorded canonical public environment URLs and clarified that local development settings are excluded by the nested project ignore file.` |
 
 ---
 
 ## 1. Metadata & Organizational Alignment
 
-| Metadata Field | Value / Description | Confidence |
-| :--- | :--- | :--- |
-| **Application Acronym** | `RFCBuddy` | Verified (`RfcBuddy.sln`, `appsettings.json`) |
-| **Full Application Name** | `RFC Buddy - OCIO 365-Day Schedule Filter & CAB Document Generator` | Verified (`README.md`, `specs/001-recent-completed-rfcs/spec.md`) |
-| **Status** | `Active` | Verified (`README.md` lifecycle badge: Stable) |
-| **Ministry** | `Ministry of Citizens' Services` | Inferred (`dev_values.yaml` - BC Gov DevOps Emerald Cluster) |
-| **Division** | `Office of the Chief Information Officer (OCIO)` | Verified (`README.md`) |
+| Metadata Field | Value / Description |
+| :--- | :--- |
+| **Application Acronym** | `RFCBuddy` |
+| **Full Application Name** | `RFC Buddy - OCIO 365-Day Schedule Filter & CAB Document Generator` |
+| **Status** | `Active` |
+| **Ministry** | `Ministry of Citizens' Services` (inferred from deployment metadata) |
+| **Division** | `Office of the Chief Information Officer (OCIO)` |
 
 ---
 
 ## 2. System Overview & Boundaries
 
 ### 2.1 Capability Statement
-RFC Buddy processes the daily 365-day change schedule published by the OCIO, applying custom filters and highlights based on user-defined keyword areas (Ministry, General, Ignore). It automatically tracks change history against a baseline, preserves a 5-week completed RFC archive, and generates pre-formatted Word (.docx) documents for Change Advisory Board (CAB) meetings. Additionally, it provides a PAT-authenticated REST API (`/api/v1/rfcs/search`) for automated downstream integrations.
+
+RFC Buddy retrieves the OCIO 365-day change schedule, applies user-defined keyword filters, tracks changes against per-user baselines, maintains a completed RFC archive, and generates CAB Word documents. Authenticated browser users manage filters and API tokens through the MVC application, while downstream systems use the versioned PAT-authenticated search endpoint.
 
 ### 2.2 System Context Diagram
 
 ```mermaid
 graph TD
-    CABUser([CAB Reviewer / User]) -->|HTTPS / OIDC| WebUI[RFC Buddy Web Application]
-    DownstreamApp([Downstream System / CLI]) -->|HTTPS / Bearer PAT| RestAPI[REST API /api/v1/rfcs]
-    WebUI -->|OIDC / Auth Code + PAR| Keycloak[Keycloak Identity Provider]
-    WebUI -->|HTTP Download| OCIOSchedule[OCIO 365-Day Schedule Excel Source]
-    WebUI -->|Read/Write| DataVol[(Shared Persistent Volume /app/data)]
-    RestAPI -->|Read/Write| DataVol
-    
-    subgraph DataVol [/app/data Volume]
-        UsersStore[users.json]
-        TokensStore[apitokens.json]
-        UserBaselines[{userId}/PreviousRFCs.txt]
-        ArchiveStore[archive.json]
-        DataProtectionKeys[keys/* DataProtection Key Ring]
-    end
+    User([CAB user]) -->|HTTPS and OIDC| App[RFC Buddy web application]
+    Consumer([Downstream system]) -->|HTTPS and PAT| App
+    App -->|OIDC| Keycloak[Keycloak identity provider]
+    App -->|HTTPS| Schedule[OCIO schedule source]
+    App -->|Read and write| Volume[(Shared application volume)]
+    Volume --> Stores[User, token, archive, baseline and key files]
 ```
+
+### 2.3 Platform role, reuse, and data responsibility
+
+| Assessment | Result | Evidence / Owner | Confidence |
+| :--- | :--- | :--- | :--- |
+| **Conditional role** | `Point solution with integration-adapter aspect` | Consumes the OCIO schedule and exposes a downstream API; application team owns the implementation. | `Inferred` |
+| **One-to-many impact** | `Multiple consumers` | Versioned `/api/v1/rfcs/search` endpoint is intended for downstream systems. | `Verified` |
+| **Reuse or build decision** | `No shared catalogue or reusable service was evidenced; preserve the existing point solution pending owner review.` | `README.md`, solution structure and deployment workspace. | `Unknown` |
+| **Data custodian and permitted purpose/subject scope** | `OCIO appears to own the source schedule; formal permitted-use scope is not documented.` | Source URL configuration and application purpose. | `Unknown` |
+| **Data sharing spectrum** | `Shared/Internal` | Authenticated UI and PAT API; no public data boundary was evidenced. | `Unknown` |
+| **Narrow question API vs. broad data access** | `The API exposes filtered RFC search results; consumer limits and capacity expectations are not documented.` | REST contract under `specs/002-rest-api-pat-auth/contracts`. | `Inferred` |
 
 ---
 
 ## 3. Logical & Structural Component Breakdown
 
-```
+```text
 src/
-├── RfcBuddy.App/                 # Core Domain & Application Logic (.NET 10 Class Library)
-│   ├── Core/                     # Cryptography (SHA256) & DateTime Extensions (Pacific Time)
-│   ├── Objects/                  # Domain Models (Rfc, ApiToken, UserRecord, AppSettings, etc.)
-│   └── Services/                 # Business Services (ApiToken, UserRegistry, Excel, Word, Archive, ChangeTracker)
-├── RfcBuddy.App.Tests/           # Unit Tests for Domain Services & Core Logic
-├── RfcBuddy.Web/                 # ASP.NET Core MVC & REST API Web Host (.NET 10 Web App)
-│   ├── Authentication/           # ApiTokenAuthenticationHandler (Bearer token auth & side-channel delay)
-│   ├── Authorization/            # AdminRequirement & AdminAuthorizationHandler
-│   ├── Controllers/              # HomeController, RfcApiController, ApiTokensController, AdminController
-│   ├── Models/                   # ViewModels & API DTOs (RfcSearchRequest, RfcSearchResponse)
-│   ├── Services/                 # Hosted Background Services (ArchiveUpdateService, UserMaintenanceService)
-│   ├── Support/                  # UserRegistrationFilter, AppVersion
-│   └── Program.cs                # Dependency Injection, Middleware, Auth & DataProtection Setup
-└── RfcBuddy.Web.Tests/           # Integration & Controller Tests
+|- RfcBuddy.App/                 # Domain models and application services
+|  |- Core/                      # Hashing and date/time helpers
+|  |- Objects/                   # Domain models and settings
+|  `- Services/                  # Schedule, archive, token and user services
+|- RfcBuddy.Web/                 # ASP.NET Core MVC host and REST API
+|  |- Authentication/            # PAT authentication handler
+|  |- Authorization/             # Admin policy and handler
+|  |- Controllers/               # MVC and API entry points
+|  |- Services/                  # Hosted background services
+|  `- Program.cs                 # DI, middleware, auth and data protection
+|- RfcBuddy.App.Tests/           # Application unit tests
+`- RfcBuddy.Web.Tests/           # Web and controller tests
 ```
 
 ### 3.1 Key Architecture Seams
 
-* **Cluster 1: Authentication & Token Management (`ApiTokenService`, `ApiTokenAuthenticationHandler`, `ApiTokensController`)**
-  * *Key Components:* `src/RfcBuddy.App/Services/ApiTokenService.cs`, `src/RfcBuddy.Web/Authentication/ApiTokenAuthenticationHandler.cs`, `src/RfcBuddy.Web/Controllers/ApiTokensController.cs`
-  * *Purpose:* Issues, authenticates, and revokes Personal Access Tokens (PATs) using SHA-256 token hashing and side-channel timing defenses.
-* **Cluster 2: RFC Processing & Word Document Generation (`ExcelService`, `WordService`, `RfcArchiveService`, `RfcChangeTracker`)**
-  * *Key Components:* `src/RfcBuddy.App/Services/ExcelService.cs`, `src/RfcBuddy.App/Services/WordService.cs`, `src/RfcBuddy.App/Services/RfcArchiveService.cs`, `src/RfcBuddy.App/Services/RfcChangeTracker.cs`
-  * *Purpose:* Downloads the OCIO Excel schedule, categorizes RFCs, tracks baseline differences, maintains the 5-week completed archive, and generates OpenXML `.docx` files.
-* **Cluster 3: User Registry & Administration (`UserRegistryService`, `AdminController`, `UserRegistrationFilter`)**
-  * *Key Components:* `src/RfcBuddy.App/Services/UserRegistryService.cs`, `src/RfcBuddy.Web/Controllers/AdminController.cs`, `src/RfcBuddy.Web/Support/UserRegistrationFilter.cs`
-  * *Purpose:* Manages user onboarding, auto-promotes the first interactive user to administrator, enforces RBAC, and purges inactive user accounts.
-* **Cluster 4: Automated Background Operations (`ArchiveUpdateService`, `UserMaintenanceService`)**
-  * *Key Components:* `src/RfcBuddy.Web/Services/ArchiveUpdateService.cs`, `src/RfcBuddy.Web/Services/UserMaintenanceService.cs`
-  * *Purpose:* Hosted background services (`IHostedService`) that automatically update/prune the RFC archive weekly and clean up inactive user data daily.
+* **Authentication and token management:** `ApiTokenService`, `ApiTokenAuthenticationHandler`, and `ApiTokensController` issue, hash, authenticate, and revoke PATs.
+* **RFC processing and document generation:** `ExcelService`, `RfcArchiveService`, `RfcChangeTracker`, and `WordService` retrieve, filter, persist, and export schedule data.
+* **User registry and administration:** `UserRegistryService`, `UserRegistrationFilter`, and `AdminController` maintain users and admin status.
+* **Background operations:** `ArchiveUpdateService` and `UserMaintenanceService` perform scheduled refresh and cleanup work.
 
 ### 3.2 Entry Points & Gateways
 
-| Entry Point | Type | Path / Reference | Confidence |
-| :--- | :--- | :--- | :--- |
-| **Web UI Home** | `MVC Controller` | `GET /`, `POST /` (`HomeController.Index`) | Verified |
-| **PAT Management UI** | `MVC Controller` | `GET/POST /ApiTokens`, `GET/POST /ApiTokens/Create`, `POST /ApiTokens/Revoke` | Verified |
-| **Admin Panel UI** | `MVC Controller` | `GET /Admin`, `POST /Admin/SetAdmin`, `POST /Admin/RevokeToken` | Verified |
-| **REST API Search** | `REST API` | `POST /api/v1/rfcs/search` (`RfcApiController.Search`) | Verified |
-| **Health Check Probe** | `HTTP Endpoint` | `GET /healthz` | Verified |
-| **Archive Auto-Update** | `Background Worker` | `ArchiveUpdateService` (Hosted Service, hourly check, 7-day refresh interval) | Verified |
-| **User Cleanup Worker** | `Background Worker` | `UserMaintenanceService` (Hosted Service, 6-hour interval) | Verified |
+| Entry Point | Type | Path / Reference |
+| :--- | :--- | :--- |
+| Web UI | `MVC` | `/`, `/ApiTokens`, `/Admin` |
+| RFC search | `REST API` | `POST /api/v1/rfcs/search` |
+| Health probe | `REST API` | `GET /healthz` |
+| Archive refresh | `Worker` | `ArchiveUpdateService` |
+| User cleanup | `Worker` | `UserMaintenanceService` |
 
 ---
 
@@ -104,163 +98,215 @@ src/
 
 ### 4.1 API Versioning Strategy
 
-| API Version | Status | Base Path / Header | Sunset Date | Confidence |
-| :--- | :--- | :--- | :--- | :--- |
-| `v1` | `Active` | `/api/v1/rfcs` | N/A | Verified |
+| API Version | Status | Base Path / Header | Sunset Date |
+| :--- | :--- | :--- | :--- |
+| `v1` | `Active` | `/api/v1/rfcs` | `Not set` |
 
 ### 4.2 Contract Documentation
 
-| Contract Type | Location | Auto-Generated | Confidence |
-| :--- | :--- | :--- | :--- |
-| `REST API Spec` | `specs/002-rest-api-pat-auth/contracts/rest-api.md` | `No` | Verified |
-| `Service Contracts` | `specs/002-rest-api-pat-auth/contracts/service-contracts.md` | `No` | Verified |
+| Contract Type | Location | Auto-Generated |
+| :--- | :--- | :--- |
+| `REST API` | `specs/002-rest-api-pat-auth/contracts/rest-api.md` | `No` |
+| `Service contract` | `specs/002-rest-api-pat-auth/contracts/service-contracts.md` | `No` |
 
 ### 4.3 Contract Testing
-Unit and integration tests in `src/RfcBuddy.Web.Tests/Controllers/RfcApiControllerTests.cs` and `src/RfcBuddy.Web.Tests/Authentication/ApiTokenAuthenticationHandlerTests.cs` validate request/response JSON models, error handling, token authentication, and status returns.
 
----
+Controller and authentication tests cover the request/response models, PAT authentication, and error status behavior. No consumer-driven contract test or automated compatibility check was evidenced.
 
-## 7. Security Architecture
+### 4.4 Contract ownership and dependency behavior
 
-### 7.1 Authentication & Authorization Model
-
-| Aspect | Implementation | Confidence |
-| :--- | :--- | :--- |
-| **Authentication Method** | `OIDC (Web UI) / Bearer PAT (REST API)` | Verified |
-| **Identity Provider** | `Keycloak` (BC Gov DevHub / Gold Keycloak) | Verified |
-| **Authorization Model** | `RBAC / Policy-based` (`Admin` policy via `AdminRequirement` & `AdminAuthorizationHandler`) | Verified |
-| **Token Format** | `Session Cookie (Web) / Raw String 64-char Hex (PAT)` | Verified |
-| **Token Storage** | `HttpOnly Cookie (Web) / SHA-256 Hashed JSON Store (PAT)` | Verified |
-
-### 7.2 Cryptographic Controls
-- **Secret Generation:** Raw PATs are generated using `Guid.NewGuid().ToString("N") + ":" + Guid.NewGuid().ToString("N")` yielding 64 alphanumeric characters.
-- **Transience of Secrets:** Raw PAT strings are displayed ONCE upon creation (`TempData["CreatedToken"]`) and never stored. Only SHA-256 hashes (`Cryptography.GetSha256Hash`) are persisted in `apitokens.json`.
-- **Credential Storage:** User identities and tokens are stored in `/app/data/users.json` and `/app/data/apitokens.json`. No raw credentials or passwords are created or stored by the application (authentication is delegated to Keycloak OIDC).
-- **Side-Channel Mitigation:** `ApiTokenAuthenticationHandler` implements an explicit `Task.Delay(100)` delay on authentication failure responses to normalize execution timing and mitigate timing attacks.
-
-### 7.3 Concurrency & Data Integrity
-- **Lock Granularity:** Process-wide named cross-thread `System.Threading.Mutex` instances (`Global\RfcBuddyTokens_*` and `Global\RfcBuddyUsers_*`) lock store file updates.
-- **Race Condition Prevention:** File modifications use an atomic write-and-replace strategy: JSON data is written to a unique temporary file (`.tmp-{guid}`) and atomically moved (`File.Move(tempPath, storePath, true)`) to prevent corrupted reads during concurrent operations.
-- **Multi-Replica Session Consistency:** DataProtection keys are persisted to a shared volume directory (`/app/data/keys`) using `.PersistKeysToFileSystem()` with a unified application name (`SetApplicationName("RfcBuddy")`), ensuring cross-pod cookie decryption and anti-forgery token consistency across OpenShift replicas.
-
-### 7.4 Audit & Logging
-- **Structured Audit Events:** Security-relevant operations (token creation, token revocation, admin role changes, user account purges) log structured entries via `ILogger`.
-- **PII Redaction:** User identifiers in stores are sanitized or hashed (`Cryptography.GetSha256Hash(User.Identity.Name)`). No cleartext tokens or secrets are logged.
-
-### 7.5 Data Classification
-
-| Data Category | Classification | Encryption at Rest | Encryption in Transit | Retention Policy | Confidence |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **RFC Schedule Data** | `Internal` | Persistent Volume Storage | `TLS 1.2+` | Archived up to 35 days (5 weeks) | Verified |
-| **User & Token Metadata** | `Confidential` | Persistent Volume / SHA-256 Hash | `TLS 1.2+` | Retained until revoked or purged after inactivity threshold | Verified |
-
----
-
-## 8. Deployment & Infrastructure
-
-### 8.1 Environment Topology
-
-| Environment | Purpose | Hosting | URL / Endpoint | Confidence |
+| Contract / Dependency | Owner | Version / compatibility policy | Timeout, cancellation, retry and idempotency | Fallback, stale-data and rollback behavior |
 | :--- | :--- | :--- | :--- | :--- |
-| **Development** | Feature testing | OpenShift Emerald | `https://rfcbuddy-ca61f6-dev.apps.emerald.devops.gov.bc.ca` | Verified |
-| **Test / QA** | Integration testing | OpenShift Emerald | Managed via `tenant-gitops-ca61f6` (`test_values.yaml`) | Verified |
-| **Production** | Live workload | OpenShift Emerald | `https://rfcbuddy-ca61f6-prod.apps.emerald.devops.gov.bc.ca` | Verified |
+| RFC schedule source | OCIO / application team ownership is not formally recorded | Configuration-driven source; no compatibility policy evidenced | `ExcelService` applies a 30-second timeout; cancellation, bounded retry, and circuit breaker evidence is absent | API surfaces a failure; stale-data indicator and assisted path are not evidenced |
+| RFC Buddy REST API | Application team | URL version `v1`; deprecation policy is not documented | Request rate limit is 100 per minute; idempotency is not applicable to the read/search operation | No compatibility rollback process is documented |
 
-### 8.2 CI/CD Pipeline
+---
+
+## 5. Unicode, UTF-8 & Indigenous-Language Readiness
+
+| Boundary | Encoding / Unicode Type | Collation / Comparison | Round-Trip Evidence | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| UI and HTTP input/output | ASP.NET Core and JSON default to Unicode | Application string comparisons are ordinal in identity paths | No representative-language browser test evidenced | `Unknown` |
+| Application processing and validation | .NET strings are UTF-16 | Keyword matching behavior is not documented for linguistic equivalence | No normalization test corpus evidenced | `Unknown` |
+| Database, indexes, and search | JSON files; no database collation | LINQ/string behavior depends on explicit comparison sites | No persisted search round-trip test evidenced | `Unknown` |
+| Messages, caches, and integrations | HTTP and Excel reader integration | Source-system collation is external | Excel code-page provider is registered; end-to-end language evidence is absent | `Gap` |
+| Files, imports, exports, reports, and printing | Excel and DOCX paths | Font coverage and print behavior are not validated | No export/print corpus evidenced | `Unknown` |
+| Runtime globalization data and fonts | Container now uses ICU-capable non-invariant globalization with `C.UTF-8` locale | Culture-specific behavior still requires tests | Dockerfile no longer forces invariant globalization | `Improved; validation pending` |
+
+- **Normalization policy:** Not documented.
+- **Identifier vs. linguistic comparison policy:** Identity identifiers use ordinal equality; business keyword comparison policy is not documented.
+- **Grapheme-aware operations:** Not evidenced.
+- **Known incompatible downstream systems and migration plan:** None evidenced.
+- **Representative Indigenous-language test corpus:** Not present in the repository.
+
+---
+
+## 6. Security Architecture
+
+### 6.1 Authentication & Authorization Model
+
+| Aspect | Implementation |
+| :--- | :--- |
+| **Authentication Method** | OIDC session cookie for MVC; opaque PAT for REST API |
+| **Identity Provider** | Keycloak |
+| **Authorization Model** | Policy-based admin authorization plus authenticated route protection |
+| **Token Format** | Session cookie and opaque PAT |
+| **Token Storage** | Protected cookie; SHA-256 PAT hash in the application data volume |
+
+### 6.2 Cryptographic Controls
+
+PATs are shown once and persisted only as hashes. The application does not store OIDC client secrets in tracked base configuration. Development settings are local-only and excluded by `src/RfcBuddy.Web/.gitignore`; deployment secrets are injected by the environment. Secure random generation for PATs is not independently evidenced and should be confirmed against the approved cryptographic standard.
+
+### 6.3 Concurrency & Data Integrity
+
+User and token JSON writes are protected by named mutexes and atomic replacement. `SetAdmin` now verifies that the requesting identity is an administrator inside the service boundary and preserves the last-admin invariant.
+
+### 6.4 Audit & Logging
+
+The application uses `ILogger` for service and background-worker events. Structured security-audit event coverage and alert routing are not fully evidenced.
+
+### 6.5 Data Classification
+
+| Data Category | Classification | Encryption at Rest | Encryption in Transit | Retention Policy |
+| :--- | :--- | :--- | :--- | :--- |
+| RFC schedule and archive | `Internal` | PVC/storage controls; application-level encryption not evidenced | HTTPS at ingress and outbound HTTPS where configured | Five-week completed archive behavior is implemented |
+| User and token metadata | `Confidential` | PVC/storage controls; PAT values are hashed | HTTPS and protected cookies in production | User cleanup and token revocation policies apply |
+
+### 6.6 Trust boundaries
+
+The meaningful trust boundaries are the browser-to-application session, downstream PAT API, Keycloak OIDC exchange, external schedule source, shared data volume, and OpenShift ingress. Forwarded headers are accepted only from the configured F5 proxy addresses and are limited to one hop; dev, test, and production GitOps values provide the same two addresses.
+
+---
+
+## 7. Deployment & Infrastructure
+
+### 7.1 Environment Topology
+
+| Environment | Purpose | Hosting | URL / Endpoint |
+| :--- | :--- | :--- | :--- |
+| Development | Feature testing | OpenShift Emerald | Internal route; hostname is maintained in `tenant-gitops-ca61f6/deploy/dev_values.yaml` |
+| Test / QA | Integration testing | OpenShift Emerald | Internal route; hostname is maintained in `tenant-gitops-ca61f6/deploy/test_values.yaml` |
+| Production | Live workload | OpenShift Emerald | Internal route; hostname is maintained in `tenant-gitops-ca61f6/deploy/prod_values.yaml` |
+
+### 7.2 CI/CD Pipeline
 
 ```mermaid
 graph LR
-    Commit[Git Push / PR] --> CI[GitHub Actions dotnet-10-ci.yml]
-    CI --> Restore[dotnet restore --locked-mode]
-    Restore --> Lint[dotnet format --verify-no-changes]
-    Lint --> Build[dotnet build -c Release]
-    Build --> Test[dotnet test & Coverlet Coverage]
-    Test --> DockerBuild[Docker Buildx & ghcr.io Publish]
-    DockerBuild --> GitOps[GitOps Deployment tenant-gitops-ca61f6]
-    GitOps --> OpenShift[OpenShift Cluster Emerald]
+    Commit[Commit or pull request] --> Restore[Locked NuGet restore]
+    Restore --> Lint[Format verification]
+    Lint --> Build[Release build]
+    Build --> Test[Automated tests]
+    Test --> Image[Container build and publish]
+    Image --> GitOps[Helm and GitOps deployment]
 ```
 
-| Pipeline Aspect | Details | Confidence |
-| :--- | :--- | :--- |
-| **CI Platform** | `GitHub Actions` (`.github/workflows/dotnet-10-ci.yml`) | Verified |
-| **Artifact Registry** | `GitHub Container Registry` (`ghcr.io/bcgov/rfcbuddy`) | Verified |
-| **Deployment Strategy** | `GitOps / Rolling Update` (2 replicas in Dev & Prod) | Verified |
-| **Infrastructure-as-Code** | `Helm Charts & GitOps` (`tenant-gitops-ca61f6`) | Verified |
+| Pipeline Aspect | Details |
+| :--- | :--- |
+| **CI Platform** | GitHub Actions |
+| **Artifact Registry** | GitHub Container Registry |
+| **Deployment Strategy** | Helm-managed rolling deployment |
+| **Infrastructure-as-Code** | Helm and GitOps repository |
 
-### 8.3 Container & Orchestration
+### 7.3 Container & Orchestration
 
-| Aspect | Details | Confidence |
-| :--- | :--- | :--- |
-| **Container Runtime** | `Docker / OCI` | Verified |
-| **Base Image** | `mcr.microsoft.com/dotnet/aspnet:10.0` (SDK: `mcr.microsoft.com/dotnet/sdk:10.0`) | Verified |
-| **Orchestration** | `OpenShift / Kubernetes` | Verified |
-| **Security Context** | Non-privileged user `USER 1001` in Dockerfile | Verified |
-| **Network Policy** | OpenShift Egress Network Policies restricting port 8080 (F5 Proxy) and port 443 (Keycloak) | Verified |
-
----
-
-## 9. Observability
-
-### 9.1 Logging
-| Aspect | Details | Confidence |
-| :--- | :--- | :--- |
-| **Framework** | `Microsoft.Extensions.Logging` (`ILogger`) | Verified |
-| **Aggregation** | `OpenShift / Console stdout` | Verified |
-| **Structured Format** | `Console Log / Plaintext & JSON` | Verified |
-| **Correlation ID** | `Activity.Current?.Id ?? HttpContext.TraceIdentifier` | Verified |
-
-### 9.2 Metrics & Monitoring
-| Aspect | Details | Confidence |
-| :--- | :--- | :--- |
-| **Metrics Library** | ASP.NET Core Built-in Metrics | Verified |
-| **Dashboard** | OpenShift Cluster Monitoring / Grafana | Inferred |
-
-### 9.3 Health Checks & Alerts
-| Endpoint / Check | Purpose | Alert Threshold | Confidence |
-| :--- | :--- | :--- | :--- |
-| `/healthz` | OpenShift Liveness & Readiness Probe (`AllowAnonymous`) | Unhealthy on process failure or unhandled startup crash | Verified |
+| Aspect | Details |
+| :--- | :--- |
+| **Container Runtime** | Docker/OCI |
+| **Base Image** | .NET SDK and ASP.NET 10.0 images pinned to immutable manifest digests |
+| **Orchestration** | OpenShift/Kubernetes |
+| **Service Mesh** | Not evidenced |
 
 ---
 
-## 10. Resilience & Disaster Recovery
+## 8. Observability
 
-| Aspect | Details | Confidence |
+### 8.1 Logging
+
+| Aspect | Details |
+| :--- | :--- |
+| **Framework** | `Microsoft.Extensions.Logging` |
+| **Aggregation** | OpenShift platform logging |
+| **Structured Format** | Console output; structured audit completeness is not evidenced |
+| **Correlation ID** | ASP.NET request trace identifier is available |
+
+### 8.2 Metrics & Monitoring
+
+| Aspect | Details |
+| :--- | :--- |
+| **Metrics Library** | ASP.NET Core built-in metrics |
+| **Dashboard** | Platform dashboard is inferred |
+| **Key SLIs** | Error rate, request latency, schedule refresh success, and worker health should be monitored |
+
+### 8.3 Distributed Tracing
+
+| Aspect | Details |
+| :--- | :--- |
+| **Tracing Library** | No dedicated tracing library evidenced |
+| **Propagation** | No explicit propagation configuration evidenced |
+
+### 8.4 Health Checks & Alerts
+
+| Endpoint / Check | Purpose | Alert Threshold |
 | :--- | :--- | :--- |
-| **RTO (Recovery Time Objective)** | `< 5 minutes` (Pod redeployment via OpenShift deployment) | Inferred |
-| **RPO (Recovery Point Objective)** | `< 24 hours` (Persisted user settings & tokens on PVC) | Inferred |
-| **Backup Strategy** | OpenShift PVC Snapshots (`1Gi` PersistentVolumeClaim) | Verified |
-| **Failover Mechanism** | Active-Active multi-pod deployment (2 replicas with shared DataProtection key ring) | Verified |
-| **Graceful Degradation** | Catch-up execution on application startup for background tasks; user-facing error bounds for archive limits | Verified |
+| `/healthz` | Liveness and readiness probe | Unhealthy response or unavailable endpoint |
 
 ---
 
-## 11. Architecture Decision Records (ADRs)
+## 9. Resilience & Disaster Recovery
 
-| ADR / Spec ID | Title / Theme | Status | Date | Reference | Confidence |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `001` | Recent Completed RFCs & App Version Display | `Completed` | `2026-06-30` | `specs/001-recent-completed-rfcs/spec.md` | Verified |
-| `002` | REST API and PAT Authentication | `Completed` | `2026-07-02` | `specs/002-rest-api-pat-auth/spec.md` | Verified |
+| Aspect | Details |
+| :--- | :--- |
+| **RTO (Recovery Time Objective)** | Not formally defined; pod restart behavior is not an RTO commitment |
+| **RPO (Recovery Point Objective)** | Not formally defined; PVC persistence reduces but does not eliminate data loss |
+| **Backup Strategy** | PVC is configured in production; backup schedule and restore evidence are unknown |
+| **Backup Frequency** | Unknown |
+| **Failover Mechanism** | Two replicas with shared persistent data protection keys in production |
+| **Graceful Degradation** | External schedule timeout, cancellation, retry, and stale-data behavior require implementation or documented operational treatment |
+| **Chaos/Resilience Testing** | Not evidenced |
 
 ---
 
-## 12. Architecture Review Agent Verification & Compliance Checklist
+## 10. Architecture Decision Records (ADRs)
+
+Key feature decisions are recorded in the specification artifacts listed below.
+
+| ADR ID | Title / Theme | Status | Date | Reference |
+| :--- | :--- | :--- | :--- | :--- |
+| `001` | Recent completed RFCs and application version display | `Completed` | `2026-06-30` | `specs/001-recent-completed-rfcs/spec.md` |
+| `002` | REST API and PAT authentication | `Completed` | `2026-07-02` | `specs/002-rest-api-pat-auth/spec.md` |
+
+---
+
+## 11. Architecture Review Agent Verification & Compliance Checklist
 
 ### Confidence Legend
-- **Verified** — Confirmed by direct evidence in source code or configuration.
-- **Inferred** — Deduced from directory structure, naming conventions, or partial evidence.
-- **Unknown** — Could not be determined; requires manual review.
-- **N/A** — Not applicable to this application's architecture.
+
+- **Verified** - Confirmed by direct source or configuration evidence.
+- **Inferred** - Deduced from partial evidence.
+- **Unknown** - Requires manual or operational confirmation.
+- **N/A** - Not applicable.
 
 ### Checklist
 
-- [x] **Technical Currency:** All core runtimes (.NET 10.0) and dependencies are within active support phases. No EOL platforms in production. `[Confidence: Verified]`
-- [x] **No Hardcoded Credentials:** Zero secret or token literals exist in source code commits; Keycloak client secrets and proxy details are injected via environment variables/secrets (`appsettings.json` placeholders `$(appSetting-*)`). `[Confidence: Verified]`
-- [x] **Cryptographic Controls:** Raw tokens are 64-char random GUID strings; only SHA-256 hashes are persisted. `[Confidence: Verified]`
-- [x] **Side-Channel Defenses:** `ApiTokenAuthenticationHandler` enforces a `Task.Delay(100)` delay on authentication rejection paths to prevent timing attacks. `[Confidence: Verified]`
-- [x] **Audit Logging:** Structured logging enabled across controllers, services, and background workers. `[Confidence: Verified]`
-- [x] **Concurrency Safety:** Named process-wide `Mutex` instances and atomic temporary file replacement (`.tmp-{guid}` -> move) prevent store corruption under concurrent access. Multi-pod DataProtection key ring shared via PVC. `[Confidence: Verified]`
-- [x] **Dependency Health:** Locked dependencies via `packages.lock.json` and `--locked-mode` in CI. `[Confidence: Verified]`
-- [x] **Observability:** `/healthz` endpoint configured and exposed for OpenShift probes. `[Confidence: Verified]`
-- [x] **Deployment Pipeline:** GitHub Actions CI includes formatting verification, unit tests, code coverage, Docker builds, and GitOps deployment. `[Confidence: Verified]`
-- [x] **Data Classification:** Classified as Medium DataClass (`podLabels.DataClass: Medium`) with TLS 1.2+ in transit and PVC persistence. `[Confidence: Verified]`
-- [x] **Disaster Recovery:** Persistent volume claim (`1Gi`) retains configuration, user baselines, tokens, and DataProtection key ring across pod restarts. `[Confidence: Verified]`
+- [x] **Technical Currency:** .NET 10 and audited NuGet packages are current according to the 2026-09-11 CLI audit. `[Confidence: Verified]`
+- [ ] **Unicode End-to-End:** Representative Indigenous-language round trips are not tested. `[Confidence: Unknown]`
+- [x] **Globalization Runtime:** Invariant globalization was removed and UTF-8 locale is configured. `[Confidence: Verified]`
+- [x] **No Hardcoded Credentials:** No credential literals are tracked; local development settings are excluded by the nested web-project ignore file and deployment secrets are injected. `[Confidence: Verified]`
+- [ ] **Cryptographic Controls:** PAT generation implementation requires approved secure-RNG confirmation. `[Confidence: Unknown]`
+- [x] **Side-Channel Defenses:** Invalid PAT handling includes timing normalization. `[Confidence: Verified]`
+- [ ] **Audit Logging:** Complete structured security transition coverage is not evidenced. `[Confidence: Unknown]`
+- [x] **Concurrency Safety:** Shared JSON writes use mutex and atomic replacement patterns. `[Confidence: Verified]`
+- [x] **Dependency Health:** No vulnerable or outdated NuGet packages were reported by the current CLI audit. `[Confidence: Verified]`
+- [ ] **Observability:** Platform alerting and distributed tracing are not fully evidenced. `[Confidence: Unknown]`
+- [ ] **Deployment Pipeline:** Fresh Sonar and container/SBOM gates are not evidenced. `[Confidence: Unknown]`
+- [ ] **Data Classification:** Categories are described, but storage encryption and retention ownership need operational confirmation. `[Confidence: Unknown]`
+- [ ] **Disaster Recovery:** Backup and restore procedures are not evidenced. `[Confidence: Unknown]`
+- [ ] **Platform Role (conditional):** Point-solution and integration-adapter aspects are recorded, but role reuse evidence is inferred. `[Confidence: Inferred]`
+- [ ] **Platform Data Responsibility (conditional):** Custodian and permitted-use scope remain unknown. `[Confidence: Unknown]`
+- [ ] **Contract Ownership (conditional):** Owner, deprecation, and consumer migration policy remain unknown. `[Confidence: Unknown]`
+- [ ] **Dependency Degradation (conditional):** External schedule timeout is implemented, but cancellation, retry, fallback, and staleness behavior remain incomplete. `[Confidence: Unknown]`
+- [x] **Protected Resources and Access Paths (conditional):** Browser, PAT, administrator, Keycloak, source, volume, and ingress boundaries are inventoried. `[Confidence: Verified]`
+- [x] **Resource Authorization (conditional):** Admin service authorization is enforced separately from route policy. `[Confidence: Verified]`
+- [x] **Least Privilege and Lifetime (conditional):** Production cookie and PAT expiry controls are configured. `[Confidence: Verified]`
+- [ ] **Revocation and Exceptions (conditional):** Full rotation and replay evidence is incomplete. `[Confidence: Unknown]`
+- [x] **Safe Degradation and Evidence (conditional):** Forwarded-header trust fails closed without configured proxy addresses. `[Confidence: Verified]`

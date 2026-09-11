@@ -161,6 +161,12 @@ public sealed class UserRegistryService : IUserRegistryService
         try
         {
             List<UserRecord> users = LoadStore();
+            if (string.IsNullOrWhiteSpace(requestingAdminUserId)
+                || !users.Any(x => x.IsAdmin && string.Equals(x.UserId, requestingAdminUserId, StringComparison.OrdinalIgnoreCase)))
+            {
+                return false;
+            }
+
             UserRecord? target = users.FirstOrDefault(x => string.Equals(x.UserId, targetUserId, StringComparison.OrdinalIgnoreCase));
             if (target is null)
             {
