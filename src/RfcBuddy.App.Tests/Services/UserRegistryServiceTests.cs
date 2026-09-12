@@ -38,6 +38,10 @@ public class UserRegistryServiceTests
             Assert.IsTrue(registry.SetAdmin("user-1", false, "user-2"));
             Assert.IsFalse(registry.IsAdmin("user-1"));
 
+            // Non-admin and unknown requesters cannot change administrative status.
+            Assert.IsFalse(registry.SetAdmin("user-1", true, "user-1"));
+            Assert.IsFalse(registry.SetAdmin("user-1", true, "missing-user"));
+
             // Attempting to demote the last remaining admin (user-2) should fail
             Assert.IsFalse(registry.SetAdmin("user-2", false, "user-1"));
             Assert.IsTrue(registry.IsAdmin("user-2")); // Still admin

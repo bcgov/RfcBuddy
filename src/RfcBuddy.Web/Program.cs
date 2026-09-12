@@ -12,6 +12,7 @@ using RfcBuddy.Web.Authentication;
 using RfcBuddy.Web.Authorization;
 using RfcBuddy.Web.Services;
 using RfcBuddy.Web.Support;
+using System.Net;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading.RateLimiting;
@@ -49,13 +50,40 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
     .SetApplicationName("RfcBuddy");
 
-// Trust proxy headers (for OpenShift HTTPS)
+// Trust forwarded headers only from explicitly configured ingress proxies.
+IConfigurationSection knownProxiesSection = builder.Configuration.GetSection("ForwardedHeaders:KnownProxies");
+IEnumerable<string> configuredKnownProxies = knownProxiesSection.GetChildren()
+    .Select(x => x.Value)
+    .Where(x => !string.IsNullOrWhiteSpace(x))
+    .Cast<string>()
+    .Concat((builder.Configuration["ForwardedHeaders:KnownProxies"] ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+List<IPAddress> knownProxyAddresses = [];
+foreach (string proxyAddress in configuredKnownProxies.Distinct(StringComparer.OrdinalIgnoreCase))
+{
+    if (!IPAddress.TryParse(proxyAddress, out IPAddress? parsedAddress))
+    {
+        throw new InvalidOperationException($"ForwardedHeaders:KnownProxies contains an invalid IP address: '{proxyAddress}'.");
+    }
+
+    knownProxyAddresses.Add(parsedAddress);
+}
+
+int forwardedHeaderLimit = builder.Configuration.GetValue<int?>("ForwardedHeaders:ForwardLimit") ?? 1;
+if (forwardedHeaderLimit < 1)
+{
+    throw new InvalidOperationException("ForwardedHeaders:ForwardLimit must be greater than zero.");
+}
+
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
-    options.ForwardLimit = null; // Trust all proxy hops in OpenShift
+    foreach (IPAddress knownProxyAddress in knownProxyAddresses)
+    {
+        options.KnownProxies.Add(knownProxyAddress);
+    }
+
+    options.ForwardLimit = forwardedHeaderLimit;
 });
 
 //Authentication

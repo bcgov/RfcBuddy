@@ -46,8 +46,8 @@ public class AdminControllerTests
         Assert.IsNotNull(result);
         var model = result!.Model as AdminViewModel;
         Assert.IsNotNull(model);
-        Assert.AreEqual(users, model!.Users);
-        Assert.AreEqual(activeTokens, model.ActiveTokens);
+        Assert.AreSequenceEqual(users, model!.Users);
+        Assert.AreSequenceEqual(activeTokens, model.ActiveTokens);
     }
 
     [TestMethod]

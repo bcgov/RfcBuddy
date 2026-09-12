@@ -43,7 +43,8 @@ public class ApiTokensControllerTests
         var result = controller.Index() as ViewResult;
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(tokens, result!.Model);
+        Assert.IsInstanceOfType<List<ApiToken>>(result!.Model);
+        Assert.AreSequenceEqual(tokens, (List<ApiToken>)result.Model);
     }
 
     [TestMethod]
