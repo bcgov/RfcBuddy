@@ -82,6 +82,19 @@ public sealed class UserMaintenanceService(
                 return;
             }
 
+            if (!registryService.MarkUserCleanupPending(userId))
+            {
+                _logger.LogWarning("Skipping cleanup of inactive user {UserId} because registry cleanup safety checks refused it", userId);
+                return;
+            }
+
+            tokenService.PurgeTokensForUser(userId);
+
+            if (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+
             if (Directory.Exists(userFolder))
             {
                 Directory.Delete(userFolder, recursive: true);
@@ -92,8 +105,11 @@ public sealed class UserMaintenanceService(
                 return;
             }
 
-            tokenService.PurgeTokensForUser(userId);
-            registryService.RemoveUser(userId);
+            if (!registryService.RemoveUser(userId))
+            {
+                _logger.LogWarning("Skipping registry removal of inactive user {UserId} because admin safety checks refused it", userId);
+                return;
+            }
 
             if (_logger.IsEnabled(LogLevel.Information))
             {
