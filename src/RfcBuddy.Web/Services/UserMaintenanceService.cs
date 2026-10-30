@@ -82,18 +82,19 @@ public sealed class UserMaintenanceService(
                 return;
             }
 
-            if (Directory.Exists(userFolder))
+            // Registry removal runs first because it atomically refuses to remove the last administrator.
+            if (!registryService.RemoveUser(userId))
             {
-                Directory.Delete(userFolder, recursive: true);
-            }
-
-            if (stoppingToken.IsCancellationRequested)
-            {
+                _logger.LogWarning("Skipping cleanup of inactive user {UserId} because they are the last administrator", userId);
                 return;
             }
 
             tokenService.PurgeTokensForUser(userId);
-            registryService.RemoveUser(userId);
+
+            if (Directory.Exists(userFolder))
+            {
+                Directory.Delete(userFolder, recursive: true);
+            }
 
             if (_logger.IsEnabled(LogLevel.Information))
             {

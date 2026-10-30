@@ -96,44 +96,38 @@ public class UserRegistryServiceTests
     }
 
     [TestMethod]
-    public void MigratesLegacyUserHashAndFolderAndTokens()
+    public void DoesNotMatchExistingUserByDisplayNameHashIdentityOrEmail()
     {
         string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-userregistrytests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempFolder);
 
         try
         {
-            string oldUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash("Doe, Jane AG:EX");
-            string newUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash("jdoe");
+            string displayNameHashUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash("Doe, Jane AG:EX");
+            string otherUserId = RfcBuddy.App.Core.Cryptography.GetSha256Hash("attacker");
 
             var tokenService = new ApiTokenService(tempFolder, NullLogger<ApiTokenService>.Instance);
-            var tokenResult = tokenService.CreateToken(oldUserId, "Legacy Token", DateTime.UtcNow.AddDays(30));
+            tokenService.CreateToken(displayNameHashUserId, "Existing Token", DateTime.UtcNow.AddDays(30));
 
             var registry = new UserRegistryService(tempFolder, NullLogger<UserRegistryService>.Instance, tokenService);
-            var legacyUser = registry.EnsureRegistered(oldUserId, "Doe, Jane AG:EX", "jane.doe@example.com");
-            Assert.IsTrue(legacyUser.IsAdmin);
+            var existingUser = registry.EnsureRegistered(displayNameHashUserId, "Doe, Jane AG:EX", "jane.doe@example.com");
+            Assert.IsTrue(existingUser.IsAdmin);
 
-            // Create legacy user folder
-            string oldFolder = Path.Join(tempFolder, oldUserId);
-            Directory.CreateDirectory(oldFolder);
-            File.WriteAllText(Path.Join(oldFolder, "Keywords.txt"), "gov,forests,general");
+            string existingFolder = Path.Join(tempFolder, displayNameHashUserId);
+            Directory.CreateDirectory(existingFolder);
+            File.WriteAllText(Path.Join(existingFolder, "Keywords.txt"), "gov,forests,general");
 
-            // Now log in with new unique user ID hash
-            var migratedUser = registry.EnsureRegistered(newUserId, "Doe, Jane AG:EX", "jane.doe@example.com");
+            // A different account presenting the same display name and email must not take over the existing record.
+            var otherUser = registry.EnsureRegistered(otherUserId, "Doe, Jane AG:EX", "jane.doe@example.com");
 
-            Assert.AreEqual(newUserId, migratedUser.UserId);
-            Assert.IsTrue(migratedUser.IsAdmin);
-
-            // Verify user folder was moved
-            string newFolder = Path.Join(tempFolder, newUserId);
-            Assert.IsFalse(Directory.Exists(oldFolder));
-            Assert.IsTrue(Directory.Exists(newFolder));
-            Assert.IsTrue(File.Exists(Path.Join(newFolder, "Keywords.txt")));
-
-            // Verify token was migrated
-            var userTokens = tokenService.GetTokensForUser(newUserId);
-            Assert.HasCount(1, userTokens);
-            Assert.AreEqual("Legacy Token", userTokens[0].Label);
+            Assert.AreEqual(otherUserId, otherUser.UserId);
+            Assert.IsFalse(otherUser.IsAdmin);
+            Assert.IsTrue(registry.IsAdmin(displayNameHashUserId));
+            Assert.HasCount(2, registry.GetAllUsers());
+            Assert.IsTrue(File.Exists(Path.Join(existingFolder, "Keywords.txt")));
+            Assert.IsFalse(Directory.Exists(Path.Join(tempFolder, otherUserId)));
+            Assert.HasCount(1, tokenService.GetTokensForUser(displayNameHashUserId));
+            Assert.IsEmpty(tokenService.GetTokensForUser(otherUserId));
         }
         finally
         {
@@ -142,5 +136,75 @@ public class UserRegistryServiceTests
                 Directory.Delete(tempFolder, recursive: true);
             }
         }
+    }
+
+    [TestMethod]
+    public void RemoveUserRefusesToRemoveLastAdmin()
+    {
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-userregistrytests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempFolder);
+
+        try
+        {
+            var registry = new UserRegistryService(tempFolder, NullLogger<UserRegistryService>.Instance);
+            registry.EnsureRegistered("user-1", "John Doe", "john@gov.bc.ca");
+            registry.EnsureRegistered("user-2", "Jane Smith", "jane@gov.bc.ca");
+            registry.EnsureRegistered("user-3", "Sam Lee", "sam@gov.bc.ca");
+            Assert.IsTrue(registry.SetAdmin("user-2", true, "user-1"));
+
+            // Non-admins and admins with another admin remaining can be removed.
+            Assert.IsTrue(registry.RemoveUser("user-3"));
+            Assert.IsTrue(registry.RemoveUser("user-1"));
+
+            // The last admin cannot be removed.
+            Assert.IsFalse(registry.RemoveUser("user-2"));
+            Assert.IsTrue(registry.IsAdmin("user-2"));
+            Assert.HasCount(1, registry.GetAllUsers());
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                Directory.Delete(tempFolder, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void GetInactiveUserIdsReturnsOldestInactiveFirst()
+    {
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-userregistrytests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempFolder);
+
+        try
+        {
+            var registry = new UserRegistryService(tempFolder, NullLogger<UserRegistryService>.Instance);
+            registry.EnsureRegistered("user-1", "John Doe", "john@gov.bc.ca");
+            registry.EnsureRegistered("user-2", "Jane Smith", "jane@gov.bc.ca");
+
+            SeedActivity(tempFolder, "user-1", DateTime.UtcNow.AddDays(-410));
+            SeedActivity(tempFolder, "user-2", DateTime.UtcNow.AddDays(-500));
+
+            var inactive = registry.GetInactiveUserIds(TimeSpan.FromDays(400));
+            Assert.HasCount(2, inactive);
+            Assert.AreEqual("user-2", inactive[0]);
+            Assert.AreEqual("user-1", inactive[1]);
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                Directory.Delete(tempFolder, recursive: true);
+            }
+        }
+    }
+
+    private static void SeedActivity(string dataFolder, string userId, DateTime lastWriteUtc)
+    {
+        string userFolder = Path.Join(dataFolder, userId);
+        Directory.CreateDirectory(userFolder);
+        string file = Path.Join(userFolder, "PreviousRFCs.txt");
+        File.WriteAllText(file, "");
+        File.SetLastWriteTimeUtc(file, lastWriteUtc);
     }
 }

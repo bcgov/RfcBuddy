@@ -103,4 +103,72 @@ public class UserMaintenanceServiceTests
             }
         }
     }
+
+    [TestMethod]
+    public void CleanupInactiveUserKeepsLastAdminData()
+    {
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-maintenancetests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempFolder);
+
+        try
+        {
+            var tokenService = new ApiTokenService(tempFolder, NullLogger<ApiTokenService>.Instance);
+            var registry = new UserRegistryService(tempFolder, NullLogger<UserRegistryService>.Instance, tokenService);
+            registry.EnsureRegistered("admin-user", "Admin User", "admin@gov.bc.ca");
+            tokenService.CreateToken("admin-user", "Admin Token", DateTime.UtcNow.AddDays(30));
+            string adminFolder = Path.Join(tempFolder, "admin-user");
+            Directory.CreateDirectory(adminFolder);
+
+            InvokeCleanup("admin-user", tempFolder, tokenService, registry, CancellationToken.None);
+
+            Assert.IsTrue(registry.IsAdmin("admin-user"));
+            Assert.IsTrue(Directory.Exists(adminFolder));
+            Assert.HasCount(1, tokenService.GetTokensForUser("admin-user"));
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                Directory.Delete(tempFolder, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void CleanupInactiveUserRemovesUserWhenNotLastAdmin()
+    {
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-maintenancetests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempFolder);
+
+        try
+        {
+            var tokenService = new ApiTokenService(tempFolder, NullLogger<ApiTokenService>.Instance);
+            var registry = new UserRegistryService(tempFolder, NullLogger<UserRegistryService>.Instance, tokenService);
+            registry.EnsureRegistered("admin-user", "Admin User", "admin@gov.bc.ca");
+            registry.EnsureRegistered("stale-user", "Stale User", "stale@gov.bc.ca");
+            tokenService.CreateToken("stale-user", "Stale Token", DateTime.UtcNow.AddDays(30));
+            string staleFolder = Path.Join(tempFolder, "stale-user");
+            Directory.CreateDirectory(staleFolder);
+
+            InvokeCleanup("stale-user", tempFolder, tokenService, registry, CancellationToken.None);
+
+            Assert.HasCount(1, registry.GetAllUsers());
+            Assert.IsFalse(Directory.Exists(staleFolder));
+            Assert.IsEmpty(tokenService.GetTokensForUser("stale-user"));
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                Directory.Delete(tempFolder, recursive: true);
+            }
+        }
+    }
+
+    private static void InvokeCleanup(string userId, string dataFolder, IApiTokenService tokenService, IUserRegistryService registry, CancellationToken token)
+    {
+        var service = new UserMaintenanceService(new Mock<IServiceScopeFactory>().Object, NullLogger<UserMaintenanceService>.Instance);
+        var method = typeof(UserMaintenanceService).GetMethod("CleanupInactiveUser", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        method!.Invoke(service, [userId, dataFolder, tokenService, registry, token]);
+    }
 }
