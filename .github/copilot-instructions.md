@@ -61,6 +61,40 @@ Dockerfile               # Multi-stage Docker build (sdk:10.0 → aspnet:10.0)
 
 Always follow the BC Design System at https://www2.gov.bc.ca/gov/content/digital/design-system/components for UI styling and components. The BC Design System is React-based, but we will only use the CSS custom properties (design tokens) and font. All UI components must be implemented as MVC and CSS components without JS interop or React wrappers, to keep the frontend lightweight and maintainable.
 
+## Versioning
+
+RfcBuddy uses semantic versioning. The version shown in the bottom-left footer (`AppVersion.Current` in `Views/Shared/_Layout.cshtml`) is resolved at runtime from the assembly informational version, which comes from `<Version>` in `src/RfcBuddy.Web/RfcBuddy.Web.csproj`. That element is the single source of truth; do not hard-code the version anywhere else.
+
+### Required version bump
+
+Every change that alters application behaviour, UI, configuration, dependencies, the Dockerfile, or anything else shipped in the container image must raise `<Version>` above the base branch's value in the same change. Before finishing such work:
+
+1. Compare against the base branch: `git show origin/main:src/RfcBuddy.Web/RfcBuddy.Web.csproj`.
+2. Choose the increment from the table below, using the highest classification present in the full branch diff, not only the latest commit.
+3. Bump `<Version>` once per branch. If the branch already carries a higher version, keep it unless later work raises the classification (for example, from patch to minor).
+4. Add a matching entry at the top of `CHANGELOG.md` with the new version, date, and a concise summary.
+5. Build and confirm the footer shows the new version.
+
+Changes limited to tests, specs, `.specify/`, `.github/` instructions or agent files, or other non-shipped documentation do not require a bump.
+
+### Version selection
+
+| Change | Version |
+|---|---|
+| Bug fix, security fix, dependency or framework patch update, UI correction, performance improvement, refactor, or documentation shipped with the app | Patch |
+| New user-visible feature, page, API endpoint, background service, or new compatible configuration option | Minor |
+| Incompatible API contract change, removed endpoint or feature, required configuration or deployment change, or data/archive format change that breaks existing installations | Major, only when the user decides |
+
+Security fixes are patch unless they add a new user-visible capability or require an incompatible contract.
+
+### Major release control
+
+Never select a major version on your own. Explain the incompatibility and ask the user whether to release a major version. Neither prior release history nor the apparent size of a change authorizes a major release.
+
+### Release tags
+
+Release tags use the form `v<version>` and must match `<Version>` in `RfcBuddy.Web.csproj` on the tagged commit.
+
 ## Commands
 
 ### Development
