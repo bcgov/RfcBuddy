@@ -39,23 +39,17 @@ public class UserMaintenanceServiceTests
 
             registryMock.Setup(x => x.GetInactiveUserIds(It.IsAny<TimeSpan>()))
                 .Returns(new List<string> { "stale-user" });
+            registryMock.Setup(x => x.MarkUserCleanupPending("stale-user")).Returns(true);
+            registryMock.Setup(x => x.RemoveUser("stale-user")).Returns(true);
 
             // Seed user folder
             string staleUserFolder = Path.Join(tempFolder, "stale-user");
             Directory.CreateDirectory(staleUserFolder);
 
-            // Execute the same deletion sequence as UserMaintenanceService
-            if (registryMock.Object.GetInactiveUserIds(TimeSpan.FromDays(400)).Contains("stale-user"))
-            {
-                if (Directory.Exists(staleUserFolder))
-                {
-                    Directory.Delete(staleUserFolder, recursive: true);
-                }
-                tokenMock!.Object.PurgeTokensForUser("stale-user");
-                registryMock!.Object.RemoveUser("stale-user");
-            }
+            InvokeCleanup("stale-user", tempFolder, tokenMock.Object, registryMock.Object, CancellationToken.None);
 
             Assert.IsFalse(Directory.Exists(staleUserFolder));
+            registryMock.Verify(x => x.MarkUserCleanupPending("stale-user"), Times.Once);
             tokenMock.Verify(x => x.PurgeTokensForUser("stale-user"), Times.Once);
             registryMock.Verify(x => x.RemoveUser("stale-user"), Times.Once);
         }
@@ -92,6 +86,7 @@ public class UserMaintenanceServiceTests
 
             // Since cancellation was requested, no deletion or service purging should occur
             Assert.IsTrue(Directory.Exists(staleUserFolder));
+            registryMock.Verify(x => x.MarkUserCleanupPending(It.IsAny<string>()), Times.Never);
             tokenMock.Verify(x => x.PurgeTokensForUser(It.IsAny<string>()), Times.Never);
             registryMock.Verify(x => x.RemoveUser(It.IsAny<string>()), Times.Never);
         }
@@ -155,6 +150,38 @@ public class UserMaintenanceServiceTests
             Assert.HasCount(1, registry.GetAllUsers());
             Assert.IsFalse(Directory.Exists(staleFolder));
             Assert.IsEmpty(tokenService.GetTokensForUser("stale-user"));
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                Directory.Delete(tempFolder, recursive: true);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void CleanupFailureKeepsPendingUserForRetry()
+    {
+        string tempFolder = Path.Join(Path.GetTempPath(), "rfcbuddy-maintenancetests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempFolder);
+
+        try
+        {
+            var registry = new UserRegistryService(tempFolder, NullLogger<UserRegistryService>.Instance);
+            registry.EnsureRegistered("admin-user", "Admin User", "admin@gov.bc.ca");
+            registry.EnsureRegistered("stale-user", "Stale User", "stale@gov.bc.ca");
+            string staleFolder = Path.Join(tempFolder, "stale-user");
+            Directory.CreateDirectory(staleFolder);
+            var tokenService = new Mock<IApiTokenService>();
+            tokenService.Setup(x => x.PurgeTokensForUser("stale-user"))
+                .Throws(new IOException("Simulated token-store failure."));
+
+            InvokeCleanup("stale-user", tempFolder, tokenService.Object, registry, CancellationToken.None);
+
+            Assert.IsTrue(Directory.Exists(staleFolder));
+            Assert.HasCount(2, registry.GetAllUsers());
+            Assert.AreEqual("stale-user", registry.GetInactiveUserIds(TimeSpan.FromDays(400)).Single());
         }
         finally
         {

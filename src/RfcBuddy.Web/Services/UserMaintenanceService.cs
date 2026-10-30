@@ -82,18 +82,33 @@ public sealed class UserMaintenanceService(
                 return;
             }
 
-            // Registry removal runs first because it atomically refuses to remove the last administrator.
-            if (!registryService.RemoveUser(userId))
+            if (!registryService.MarkUserCleanupPending(userId))
             {
-                _logger.LogWarning("Skipping cleanup of inactive user {UserId} because they are the last administrator", userId);
+                _logger.LogWarning("Skipping cleanup of inactive user {UserId} because registry cleanup safety checks refused it", userId);
                 return;
             }
 
             tokenService.PurgeTokensForUser(userId);
 
+            if (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+
             if (Directory.Exists(userFolder))
             {
                 Directory.Delete(userFolder, recursive: true);
+            }
+
+            if (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            if (!registryService.RemoveUser(userId))
+            {
+                _logger.LogWarning("Skipping registry removal of inactive user {UserId} because admin safety checks refused it", userId);
+                return;
             }
 
             if (_logger.IsEnabled(LogLevel.Information))

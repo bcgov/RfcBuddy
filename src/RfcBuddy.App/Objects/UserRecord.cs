@@ -10,5 +10,7 @@ public class UserRecord
 
     public bool IsAdmin { get; set; }
 
+    public bool CleanupPending { get; set; }
+
     public DateTime FirstSeenUtc { get; set; } = DateTime.UtcNow;
 }

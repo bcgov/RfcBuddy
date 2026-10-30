@@ -152,7 +152,12 @@ public class UserRegistryServiceTests
             registry.EnsureRegistered("user-3", "Sam Lee", "sam@gov.bc.ca");
             Assert.IsTrue(registry.SetAdmin("user-2", true, "user-1"));
 
-            // Non-admins and admins with another admin remaining can be removed.
+            // While an admin cleanup is pending, other admins cannot be demoted or removed.
+            Assert.IsTrue(registry.MarkUserCleanupPending("user-1"));
+            Assert.IsFalse(registry.SetAdmin("user-2", false, "user-1"));
+            Assert.IsFalse(registry.RemoveUser("user-2"));
+
+            // Non-admins can be removed, and the pending admin can be removed while another admin remains.
             Assert.IsTrue(registry.RemoveUser("user-3"));
             Assert.IsTrue(registry.RemoveUser("user-1"));
 

@@ -11,6 +11,7 @@ public interface IUserRegistryService
     bool IsAdmin(string userId);
     IReadOnlyList<UserListEntry> GetAllUsers();
     bool SetAdmin(string targetUserId, bool isAdmin, string requestingAdminUserId);
+    bool MarkUserCleanupPending(string userId);
     bool RemoveUser(string userId);
     IReadOnlyList<string> GetInactiveUserIds(TimeSpan threshold);
     bool MigrateUserHash(string oldUserId, string newUserId);
@@ -144,7 +145,51 @@ public sealed class UserRegistryService : IUserRegistryService
                 return false;
             }
 
+            if (isAdmin && target.CleanupPending)
+            {
+                return false;
+            }
+
+            if (!isAdmin && users.Any(x => x.IsAdmin && x.CleanupPending))
+            {
+                return false;
+            }
+
             target.IsAdmin = isAdmin;
+            SaveStore(users);
+            return true;
+        }
+        finally
+        {
+            _writeMutex.ReleaseMutex();
+        }
+    }
+
+    public bool MarkUserCleanupPending(string userId)
+    {
+        _writeMutex.WaitOne();
+        try
+        {
+            List<UserRecord> users = LoadStore();
+            UserRecord? target = users.FirstOrDefault(x => string.Equals(x.UserId, userId, StringComparison.OrdinalIgnoreCase));
+            if (target is null)
+            {
+                return false;
+            }
+
+            if (target.CleanupPending)
+            {
+                return true;
+            }
+
+            if (target.IsAdmin
+                && (users.Count(x => x.IsAdmin) <= 1
+                    || users.Any(x => x.IsAdmin && x.CleanupPending)))
+            {
+                return false;
+            }
+
+            target.CleanupPending = true;
             SaveStore(users);
             return true;
         }
@@ -166,7 +211,9 @@ public sealed class UserRegistryService : IUserRegistryService
                 return true;
             }
 
-            if (target.IsAdmin && !users.Any(x => x.IsAdmin && !ReferenceEquals(x, target)))
+            if (target.IsAdmin
+                && (users.Any(x => x.IsAdmin && x.CleanupPending && !ReferenceEquals(x, target))
+                    || !users.Any(x => x.IsAdmin && !ReferenceEquals(x, target))))
             {
                 return false;
             }
@@ -193,9 +240,14 @@ public sealed class UserRegistryService : IUserRegistryService
                 .Select(x =>
                 {
                     DateTime lastActiveUtc = GetLastActiveUtc(x.UserId);
-                    return new { x.UserId, EffectiveLastActiveUtc = lastActiveUtc == DateTime.MinValue ? x.FirstSeenUtc : lastActiveUtc };
+                    return new
+                    {
+                        x.UserId,
+                        x.CleanupPending,
+                        EffectiveLastActiveUtc = lastActiveUtc == DateTime.MinValue ? x.FirstSeenUtc : lastActiveUtc
+                    };
                 })
-                .Where(x => x.EffectiveLastActiveUtc <= cutoff)
+                .Where(x => x.CleanupPending || x.EffectiveLastActiveUtc <= cutoff)
                 .OrderBy(x => x.EffectiveLastActiveUtc)
                 .Select(x => x.UserId)];
         }

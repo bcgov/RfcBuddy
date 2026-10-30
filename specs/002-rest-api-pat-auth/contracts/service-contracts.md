@@ -36,8 +36,9 @@ Maintains the user registry and admin roles. Backed by the central Mutex-guarded
 | `bool IsAdmin(string userId)` | True if the user is an administrator. (FR-026) |
 | `IReadOnlyList<UserListEntry> GetAllUsers()` | Returns all users with identity, admin flag, and derived `LastActive`. (FR-025) |
 | `bool SetAdmin(string targetUserId, bool isAdmin, string requestingAdminUserId)` | Promotes/demotes; refuses to remove the last remaining admin. (FR-023, FR-024) |
-| `bool RemoveUser(string userId)` | Removes the registry entry (used by cleanup); returns `false` and keeps the user if they are the last remaining admin. Cleanup removes the registry entry before tokens and data, so the last admin's data is never purged. (FR-024, FR-027) |
-| `IReadOnlyList<string> GetInactiveUserIds(TimeSpan threshold)` | Returns users whose derived `LastActive` is older than the threshold (default 400 days), oldest first so the most recently active admin is retained. (FR-027) |
+| `bool MarkUserCleanupPending(string userId)` | Durably marks an inactive user for cleanup; refuses to mark the last admin or start cleanup for another admin while an admin cleanup is pending. (FR-024, FR-027) |
+| `bool RemoveUser(string userId)` | Finalizes cleanup by removing the registry entry; returns `false` and keeps the user if they are the last remaining admin. The pending marker remains if token or data cleanup fails, so later sweeps retry it. (FR-024, FR-027) |
+| `IReadOnlyList<string> GetInactiveUserIds(TimeSpan threshold)` | Returns users whose derived `LastActive` is older than the threshold (default 400 days), oldest first so the most recently active admin is retained; pending cleanups are always returned for retry. (FR-027) |
 
 **Contract notes**: `LastActive` is derived from change-tracking file timestamps, not
 stored. All mutations serialize via the Mutex with in-lock re-checks. `identity` is
