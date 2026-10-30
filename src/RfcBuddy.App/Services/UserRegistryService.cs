@@ -7,11 +7,12 @@ namespace RfcBuddy.App.Services;
 
 public interface IUserRegistryService
 {
-    UserRecord EnsureRegistered(string userId, string identity, string email = "", string? legacyIdentity = null);
+    UserRecord EnsureRegistered(string userId, string identity, string email = "");
     bool IsAdmin(string userId);
     IReadOnlyList<UserListEntry> GetAllUsers();
     bool SetAdmin(string targetUserId, bool isAdmin, string requestingAdminUserId);
-    void RemoveUser(string userId);
+    bool MarkUserCleanupPending(string userId);
+    bool RemoveUser(string userId);
     IReadOnlyList<string> GetInactiveUserIds(TimeSpan threshold);
     bool MigrateUserHash(string oldUserId, string newUserId);
 }
@@ -45,7 +46,7 @@ public sealed class UserRegistryService : IUserRegistryService
         Directory.CreateDirectory(_dataFolder);
     }
 
-    public UserRecord EnsureRegistered(string userId, string identity, string email = "", string? legacyIdentity = null)
+    public UserRecord EnsureRegistered(string userId, string identity, string email = "")
     {
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -66,40 +67,6 @@ public sealed class UserRegistryService : IUserRegistryService
                 }
                 SaveStore(users);
                 return existing;
-            }
-
-            // REMINDER: REMOVE MIGRATION CODE BY 2027-09-03 (400 days from 2026-07-30).
-            // By this date, all users will either have logged in and been migrated, or cleaned up by UserMaintenanceService after 400 days of inactivity.
-            // Check for legacy record matching by old display name hash, identity string, or non-empty email
-            string legacyDisplayNameHash = RfcBuddy.App.Core.Cryptography.GetSha256Hash(identity);
-            string? legacyUniqueIdHash = string.IsNullOrWhiteSpace(legacyIdentity)
-                ? null
-                : RfcBuddy.App.Core.Cryptography.GetSha256Hash(legacyIdentity);
-            UserRecord? legacy = users.FirstOrDefault(x =>
-                string.Equals(x.UserId, legacyDisplayNameHash, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(x.UserId, legacyUniqueIdHash, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(x.Identity, identity, StringComparison.OrdinalIgnoreCase)
-                || (!string.IsNullOrEmpty(email) && string.Equals(x.Email, email, StringComparison.OrdinalIgnoreCase)));
-
-            if (legacy is not null)
-            {
-                string oldUserId = legacy.UserId;
-                legacy.UserId = userId;
-                legacy.Identity = identity;
-                if (!string.IsNullOrEmpty(email))
-                {
-                    legacy.Email = email;
-                }
-                SaveStore(users);
-
-                MigrateUserFolder(oldUserId, userId);
-                _apiTokenService?.MigrateUserTokens(oldUserId, userId);
-
-                if (_logger.IsEnabled(LogLevel.Information))
-                {
-                    _logger.LogInformation("Migrated user record and data folder from legacy hash {OldUserId} to new unique ID hash {NewUserId} for '{Identity}'", oldUserId, userId, identity);
-                }
-                return legacy;
             }
 
             bool hasAdmin = users.Any(x => x.IsAdmin);
@@ -178,6 +145,16 @@ public sealed class UserRegistryService : IUserRegistryService
                 return false;
             }
 
+            if (isAdmin && target.CleanupPending)
+            {
+                return false;
+            }
+
+            if (!isAdmin && users.Any(x => x.IsAdmin && x.CleanupPending))
+            {
+                return false;
+            }
+
             target.IsAdmin = isAdmin;
             SaveStore(users);
             return true;
@@ -188,14 +165,62 @@ public sealed class UserRegistryService : IUserRegistryService
         }
     }
 
-    public void RemoveUser(string userId)
+    public bool MarkUserCleanupPending(string userId)
     {
         _writeMutex.WaitOne();
         try
         {
             List<UserRecord> users = LoadStore();
-            users.RemoveAll(x => string.Equals(x.UserId, userId, StringComparison.OrdinalIgnoreCase));
+            UserRecord? target = users.FirstOrDefault(x => string.Equals(x.UserId, userId, StringComparison.OrdinalIgnoreCase));
+            if (target is null)
+            {
+                return false;
+            }
+
+            if (target.CleanupPending)
+            {
+                return true;
+            }
+
+            if (target.IsAdmin
+                && (users.Count(x => x.IsAdmin) <= 1
+                    || users.Any(x => x.IsAdmin && x.CleanupPending)))
+            {
+                return false;
+            }
+
+            target.CleanupPending = true;
             SaveStore(users);
+            return true;
+        }
+        finally
+        {
+            _writeMutex.ReleaseMutex();
+        }
+    }
+
+    public bool RemoveUser(string userId)
+    {
+        _writeMutex.WaitOne();
+        try
+        {
+            List<UserRecord> users = LoadStore();
+            UserRecord? target = users.FirstOrDefault(x => string.Equals(x.UserId, userId, StringComparison.OrdinalIgnoreCase));
+            if (target is null)
+            {
+                return true;
+            }
+
+            if (target.IsAdmin
+                && (users.Any(x => x.IsAdmin && x.CleanupPending && !ReferenceEquals(x, target))
+                    || !users.Any(x => x.IsAdmin && !ReferenceEquals(x, target))))
+            {
+                return false;
+            }
+
+            users.Remove(target);
+            SaveStore(users);
+            return true;
         }
         finally
         {
@@ -210,14 +235,21 @@ public sealed class UserRegistryService : IUserRegistryService
         {
             List<UserRecord> users = LoadStore();
             DateTime cutoff = DateTime.UtcNow.Subtract(threshold);
+            // Oldest first, so that when every admin is inactive the most recently active one is retained.
             return [.. users
-
-                .Select(x => new { x.UserId, LastActiveUtc = GetLastActiveUtc(x.UserId), x.FirstSeenUtc })
-
-                .Where(x => (x.LastActiveUtc == DateTime.MinValue ? x.FirstSeenUtc : x.LastActiveUtc) <= cutoff)
-
+                .Select(x =>
+                {
+                    DateTime lastActiveUtc = GetLastActiveUtc(x.UserId);
+                    return new
+                    {
+                        x.UserId,
+                        x.CleanupPending,
+                        EffectiveLastActiveUtc = lastActiveUtc == DateTime.MinValue ? x.FirstSeenUtc : lastActiveUtc
+                    };
+                })
+                .Where(x => x.CleanupPending || x.EffectiveLastActiveUtc <= cutoff)
+                .OrderBy(x => x.EffectiveLastActiveUtc)
                 .Select(x => x.UserId)];
-
         }
         finally
         {
