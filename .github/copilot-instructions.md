@@ -67,13 +67,13 @@ RfcBuddy uses semantic versioning. The version shown in the bottom-left footer (
 
 ### Required version bump
 
-Every change that alters application behaviour, UI, configuration, dependencies, the Dockerfile, or anything else shipped in the container image must raise `<Version>` above the base branch's value in the same change. Before finishing such work:
+Every change that alters application behaviour, UI, configuration, dependencies, the Dockerfile, or anything else shipped in the container image must raise `<Version>` above the base branch's release baseline in the same change. Before finishing such work:
 
-1. Compare the branch's `<Version>` with the base branch's value: `git show origin/main:src/RfcBuddy.Web/RfcBuddy.Web.csproj`.
-2. Read the newest version heading at the top of `CHANGELOG.md`. Reconcile the project version, changelog version, and base version before choosing an increment. Use the highest of these as the version baseline; do not select a version below any of them or reuse a version already recorded in the changelog.
-3. Choose the increment from the table below, using the highest classification present in the full branch diff, not only the latest commit.
-4. Bump `<Version>` once per branch. If the branch already carries a higher version than the base and changelog, keep it unless later work raises the classification (for example, from patch to minor).
-5. Add a matching entry at the top of `CHANGELOG.md` with the new version, date, and a concise summary. If that version already has an entry, update it instead of adding a duplicate.
+1. Identify the base branch the work will merge into: the pull request's target branch (`gh pr view --json baseRefName --jq .baseRefName`) or, when no pull request exists yet, the intended target branch (the repository default is `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`). Run `git fetch origin <base>` so the comparison is current.
+2. Determine the release baseline from the base branch only: the higher of `<Version>` in `git show origin/<base>:src/RfcBuddy.Web/RfcBuddy.Web.csproj` and the newest version heading in `git show origin/<base>:CHANGELOG.md`. These can differ, so always check both.
+3. Choose the increment from the table below, using the highest classification present in the full branch diff against the base branch, not only the latest commit. The target version is the baseline plus that increment.
+4. Bump `<Version>` once per branch. If the branch already carries a pending version above the baseline from earlier work on this branch, keep it when it is at least the target; otherwise raise it to the target (for example, when a later change moves the branch from patch to minor). Never select a version at or below the baseline.
+5. Keep exactly one `CHANGELOG.md` entry for the branch's pending version at the top of the file, with the version, date, and a concise summary. On follow-up edits, update that entry (renaming its heading if the version was raised) instead of adding another.
 6. Build and confirm the footer shows the new version.
 
 Changes limited to tests, specs, `.specify/`, `.github/` instructions or agent files, or other non-shipped documentation do not require a bump.
