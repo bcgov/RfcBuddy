@@ -69,11 +69,12 @@ RfcBuddy uses semantic versioning. The version shown in the bottom-left footer (
 
 Every change that alters application behaviour, UI, configuration, dependencies, the Dockerfile, or anything else shipped in the container image must raise `<Version>` above the base branch's value in the same change. Before finishing such work:
 
-1. Compare against the base branch: `git show origin/main:src/RfcBuddy.Web/RfcBuddy.Web.csproj`.
-2. Choose the increment from the table below, using the highest classification present in the full branch diff, not only the latest commit.
-3. Bump `<Version>` once per branch. If the branch already carries a higher version, keep it unless later work raises the classification (for example, from patch to minor).
-4. Add a matching entry at the top of `CHANGELOG.md` with the new version, date, and a concise summary.
-5. Build and confirm the footer shows the new version.
+1. Compare the branch's `<Version>` with the base branch's value: `git show origin/main:src/RfcBuddy.Web/RfcBuddy.Web.csproj`.
+2. Read the newest version heading at the top of `CHANGELOG.md`. Reconcile the project version, changelog version, and base version before choosing an increment. Use the highest of these as the version baseline; do not select a version below any of them or reuse a version already recorded in the changelog.
+3. Choose the increment from the table below, using the highest classification present in the full branch diff, not only the latest commit.
+4. Bump `<Version>` once per branch. If the branch already carries a higher version than the base and changelog, keep it unless later work raises the classification (for example, from patch to minor).
+5. Add a matching entry at the top of `CHANGELOG.md` with the new version, date, and a concise summary. If that version already has an entry, update it instead of adding a duplicate.
+6. Build and confirm the footer shows the new version.
 
 Changes limited to tests, specs, `.specify/`, `.github/` instructions or agent files, or other non-shipped documentation do not require a bump.
 
