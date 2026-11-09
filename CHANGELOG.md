@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.1] (2026-11-09)
+
+### Bug Fixes
+* Enforce HTTPS for Keycloak sign-in and sign-out callback URIs, including pushed authorization requests and authorization-code redemption behind TLS-terminating ingress.
+
 ## [1.3.0] (2026-06-25)
 
 ### Features

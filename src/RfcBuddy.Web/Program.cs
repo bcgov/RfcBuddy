@@ -120,9 +120,8 @@ builder.Services.AddAuthentication(options =>
         options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.GetClaimsFromUserInfoEndpoint = true;
         options.ResponseType = OpenIdConnectResponseType.Code;
-        // Use Pushed Authorization Requests (PAR) when Keycloak advertises the endpoint.
-        // Forwarded headers (UseForwardedHeaders) promote proxied requests to https, so the
-        // redirect_uri is generated correctly for the PAR back-channel push to Keycloak.
+        // The redirect event runs before PAR and before saving the URI for code redemption.
+        options.Events = new HttpsOpenIdConnectEvents();
         options.PushedAuthorizationBehavior = PushedAuthorizationBehavior.UseIfAvailable;
         options.NonceCookie.SameSite = builder.Environment.IsDevelopment()
             ? SameSiteMode.Unspecified
